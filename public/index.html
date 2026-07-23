@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Greenwood Registry — Cemetery Mapping &amp; Information System</title>
+<meta name="description" content="Find any grave by name and get live GPS directions to it, right from your phone.">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M16 3C10 3 6 8 6 13.5C6 20 16 29 16 29C16 29 26 20 26 13.5C26 8 22 3 16 3Z" stroke="#3F5D48" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M12 16V10C12 8.3 13.3 7 15 7H17C18.7 7 20 8.3 20 10V16" stroke="#A9814B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 16H21" stroke="#A9814B" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      Greenwood Registry
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/map.html">Map &amp; directions</a></li>
+      <li><a href="/search.html">Search records</a></li>
+      <li><a href="/submit-grave.html">Add a grave</a></li>
+    </ul>
+    <div class="nav-actions" id="navActions"></div>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <svg class="hero-contours" viewBox="0 0 1200 500" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M-50 420 C 200 380, 300 460, 550 400 S 900 340, 1250 400" stroke="#CFC9B8" stroke-width="1.5" fill="none"/>
+      <path d="M-50 460 C 220 420, 340 490, 600 440 S 950 390, 1250 450" stroke="#CFC9B8" stroke-width="1.5" fill="none"/>
+      <path d="M-50 100 C 250 60, 380 140, 640 90 S 980 40, 1250 100" stroke="#CFC9B8" stroke-width="1.5" fill="none"/>
+      <path d="M-50 60 C 260 20, 400 90, 660 50 S 1000 10, 1250 60" stroke="#CFC9B8" stroke-width="1.5" fill="none"/>
+    </svg>
+    <div class="hero-inner">
+      <div>
+        <span class="hero-eyebrow"><span class="pulse-dot"></span> Live GPS map, updated as records are approved</span>
+        <h1>Find any grave. Walk straight to it.</h1>
+        <p class="lede">Greenwood Registry maps every plot in the cemetery to a precise GPS coordinate, so families, genealogists, and caretakers can search a name and get turn-by-turn walking directions to the exact spot.</p>
+
+        <form class="hero-search" action="/search.html" method="get" role="search" aria-label="Search grave records">
+          <label for="heroSearch" class="visually-hidden">Search by name</label>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin:0 4px 0 8px;flex:none;" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#6B6459" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="#6B6459" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="heroSearch" name="q" type="text" placeholder="Search a first or last name…" autocomplete="off">
+          <button class="btn btn-primary" type="submit">Search</button>
+        </form>
+
+        <div class="hero-cta">
+          <a class="btn btn-secondary" href="/map.html">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s7-7.2 7-12a7 7 0 10-14 0c0 4.8 7 12 7 12z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="2"/></svg>
+            Open live map
+          </a>
+          <a class="btn btn-ghost" href="/submit-grave.html">Mark a grave you know</a>
+        </div>
+
+        <div class="hero-stats" id="heroStats" aria-live="polite">
+          <div class="hero-stat"><span class="num">—</span><span class="label">Graves mapped</span></div>
+          <div class="hero-stat"><span class="num">—</span><span class="label">Cemetery grounds</span></div>
+          <div class="hero-stat"><span class="num">Admin-reviewed</span><span class="label">Every submission</span></div>
+        </div>
+      </div>
+
+      <div class="hero-plaque">
+        <div class="plaque-top">
+          <span class="plaque-name">Eleanor J. Whitfield</span>
+          <span class="badge badge-approved">Verified</span>
+        </div>
+        <p class="muted" style="margin-bottom:10px;">1931 – 2014 · Section C, Row 4, Plot 12</p>
+        <p class="coords">4.85940° N, 31.57130° E</p>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <a class="btn btn-primary btn-sm" href="/map.html">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+            Get directions
+          </a>
+          <span class="btn btn-ghost btn-sm" style="pointer-events:none;">Example record</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Built for the walk from the gate to the grave</h2>
+        <p class="muted">Paper ledgers and hand-drawn plot maps get lost. This registry keeps every record searchable, precise, and current.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <h3>Instant name search</h3>
+          <p class="muted">A full-text index finds a grave the moment you type a name — first, last, or maiden — even with partial matches.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-7.2 7-12a7 7 0 10-14 0c0 4.8 7 12 7 12z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="2"/></svg></div>
+          <h3>Live GPS &amp; walking directions</h3>
+          <p class="muted">Tap a result and the map routes you from your current location to the exact grave using open routing data.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 3l7 4v5c0 5-3.5 8.5-7 9.5C8.5 20.5 5 17 5 12V7l7-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <h3>Admin-reviewed submissions</h3>
+          <p class="muted">Anyone can propose a grave marker with photos and GPS coordinates. Nothing appears publicly until an administrator approves it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--surface); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+    <div class="container">
+      <div class="grid-2" style="align-items:center;">
+        <div>
+          <div class="section-header left">
+            <h2>Add a grave in three steps</h2>
+            <p class="muted">Family members and caretakers can contribute — every entry is checked before it goes live.</p>
+          </div>
+          <div class="steps">
+            <div class="step">
+              <span class="step-num">01</span>
+              <div><h3 style="margin-bottom:4px;">Stand at the grave</h3><p class="muted" style="margin-bottom:0;">Open “Add a grave” on your phone and let it read your device's GPS position, or drop a pin on the map.</p></div>
+            </div>
+            <div class="step">
+              <span class="step-num">02</span>
+              <div><h3 style="margin-bottom:4px;">Fill in what you know</h3><p class="muted" style="margin-bottom:0;">Name, dates, plot reference, and up to five photos of the headstone.</p></div>
+            </div>
+            <div class="step">
+              <span class="step-num">03</span>
+              <div><h3 style="margin-bottom:4px;">An admin reviews it</h3><p class="muted" style="margin-bottom:0;">Once approved, it's searchable and routable for everyone. Rejected entries come back with a reason.</p></div>
+            </div>
+          </div>
+          <a class="btn btn-primary" href="/submit-grave.html" style="margin-top:8px;">Start a submission</a>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <svg viewBox="0 0 480 360" width="100%" height="100%" role="img" aria-label="Illustration of a cemetery map with a highlighted grave location">
+            <rect width="480" height="360" fill="#E1E8DF"/>
+            <g stroke="#CFC9B8" stroke-width="1">
+              <path d="M0 60 H480 M0 120 H480 M0 180 H480 M0 240 H480 M0 300 H480" />
+              <path d="M60 0 V360 M140 0 V360 M220 0 V360 M300 0 V360 M380 0 V360" />
+            </g>
+            <g fill="#8FA694">
+              <circle cx="100" cy="90" r="5"/><circle cx="180" cy="150" r="5"/><circle cx="260" cy="90" r="5"/>
+              <circle cx="340" cy="150" r="5"/><circle cx="140" cy="210" r="5"/><circle cx="300" cy="260" r="5"/>
+              <circle cx="380" cy="80" r="5"/><circle cx="60" cy="260" r="5"/>
+            </g>
+            <path d="M220 210c0-16 13-29 29-29s29 13 29 29c0 21-29 55-29 55s-29-34-29-55z" fill="#33503C"/>
+            <circle cx="249" cy="207" r="10" fill="#F4F2ED"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Handled with care, and locked down properly</h2>
+        <p class="muted">This is a records system for grieving families — it's built to match.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 4v5c0 5-3.5 8.5-7 9.5C8.5 20.5 5 17 5 12V7l7-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <h3>Verified before publishing</h3>
+          <p class="muted">Every public submission is reviewed by an administrator — no anonymous edits ever appear on the live map.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="2"/></svg></div>
+          <h3>Accounts kept safe</h3>
+          <p class="muted">Passwords are hashed, sign-in attempts are rate-limited, and sessions are protected against fixation and forgery.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <h3>An open, honest map</h3>
+          <p class="muted">Built on OpenStreetMap and open routing data — no proprietary map keys, no vendor lock-in.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="brand" style="color:#fff; margin-bottom:10px;">
+          <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 3C10 3 6 8 6 13.5C6 20 16 29 16 29C16 29 26 20 26 13.5C26 8 22 3 16 3Z" stroke="#8FA694" stroke-width="1.8"/><path d="M12 16V10C12 8.3 13.3 7 15 7H17C18.7 7 20 8.3 20 10V16" stroke="#C9A467" stroke-width="1.6"/><path d="M11 16H21" stroke="#C9A467" stroke-width="1.6"/></svg>
+          Greenwood Registry
+        </div>
+        <p class="muted" style="color:#B9B4A6; max-width:34ch;">A community cemetery mapping and information system — helping visitors find their way, respectfully.</p>
+      </div>
+      <div>
+        <h4>Navigate</h4>
+        <ul><li><a href="/map.html">Live map</a></li><li><a href="/search.html">Search records</a></li><li><a href="/submit-grave.html">Add a grave</a></li></ul>
+      </div>
+      <div>
+        <h4>Account</h4>
+        <ul><li><a href="/login.html">Log in</a></li><li><a href="/register.html">Register</a></li><li><a href="/admin/dashboard.html">Admin review</a></li></ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="year"></span> Greenwood Registry. Map data © OpenStreetMap contributors.</span>
+      <span>Built for the community, kept in the community's care.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  Api.get('/api/cemeteries').then(({ cemeteries }) => {
+    const totalGraves = cemeteries.reduce((sum, c) => sum + c.grave_count, 0);
+    const stats = document.querySelectorAll('#heroStats .num');
+    stats[0].textContent = totalGraves.toLocaleString();
+    stats[1].textContent = cemeteries.length.toLocaleString();
+  }).catch(() => {});
+</script>
+</body>
+</html>

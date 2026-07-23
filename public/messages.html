@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messages — Greenwood Registry</title>
+<link rel="stylesheet" href="/css/styles.css">
+<style>
+  .chat-shell { display: flex; flex-direction: column; height: calc(100vh - 65px); max-width: 720px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .chat-log { flex: 1; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+  .msg-bubble { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 0.92rem; line-height: 1.45; }
+  .msg-user { align-self: flex-end; background: var(--moss-600); color: #fff; border-bottom-right-radius: 4px; }
+  .msg-admin { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg-meta { font-size: 0.72rem; opacity: 0.75; margin-top: 4px; }
+  .msg-attachments { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .msg-attachments img { max-width: 220px; border-radius: 8px; display: block; }
+  .msg-file-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+  .chat-composer { border-top: 1px solid var(--border); padding: var(--space-3) var(--space-4); background: var(--surface); }
+  .composer-row { display: flex; gap: 8px; align-items: flex-end; }
+  .composer-row textarea { flex: 1; min-height: 44px; max-height: 140px; }
+  .attach-previews { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .attach-chip { display: flex; align-items: center; gap: 6px; background: var(--surface-sunken); border-radius: 999px; padding: 4px 10px; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 3C10 3 6 8 6 13.5C6 20 16 29 16 29C16 29 26 20 26 13.5C26 8 22 3 16 3Z" stroke="#3F5D48" stroke-width="1.8"/><path d="M12 16V10C12 8.3 13.3 7 15 7H17C18.7 7 20 8.3 20 10V16" stroke="#A9814B" stroke-width="1.6"/><path d="M11 16H21" stroke="#A9814B" stroke-width="1.6"/></svg>
+      Greenwood Registry
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/map.html">Map &amp; directions</a></li>
+      <li><a href="/search.html">Search records</a></li>
+      <li><a href="/submit-grave.html">Add a grave</a></li>
+    </ul>
+    <div class="nav-actions" id="navActions"></div>
+  </nav>
+</header>
+
+<main>
+  <div class="chat-shell">
+    <div style="padding:14px 20px; border-bottom:1px solid var(--border);">
+      <h1 style="font-size:1.15rem; margin:0;">Message the cemetery office</h1>
+      <p class="muted" style="margin:2px 0 0; font-size:0.85rem;">Ask about a record, a submission, or anything else. An admin will reply here.</p>
+    </div>
+    <div class="chat-log" id="chatLog"><p class="muted">Loading conversation…</p></div>
+    <div class="chat-composer">
+      <div id="composerAlert"></div>
+      <div class="attach-previews" id="attachPreviews"></div>
+      <div class="composer-row">
+        <button class="btn btn-ghost btn-sm" type="button" id="attachBtn" title="Attach files">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 11.5V17a4 4 0 01-4 4H8a5 5 0 01-5-5V8a4 4 0 014-4h5.5A2.5 2.5 0 0115 6.5V13a2 2 0 01-2 2H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <input type="file" id="attachInput" class="visually-hidden" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        <label for="messageBody" class="visually-hidden">Message</label>
+        <textarea id="messageBody" placeholder="Type a message… links are recognized automatically"></textarea>
+        <button class="btn btn-primary" type="button" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/chatRender.js"></script>
+<script src="/js/messages.js"></script>
+</body>
+</html>

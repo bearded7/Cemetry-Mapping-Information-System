@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a grave — Greenwood Registry</title>
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 3C10 3 6 8 6 13.5C6 20 16 29 16 29C16 29 26 20 26 13.5C26 8 22 3 16 3Z" stroke="#3F5D48" stroke-width="1.8"/><path d="M12 16V10C12 8.3 13.3 7 15 7H17C18.7 7 20 8.3 20 10V16" stroke="#A9814B" stroke-width="1.6"/><path d="M11 16H21" stroke="#A9814B" stroke-width="1.6"/></svg>
+      Greenwood Registry
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/map.html">Map &amp; directions</a></li>
+      <li><a href="/search.html">Search records</a></li>
+      <li><a href="/submit-grave.html" class="active">Add a grave</a></li>
+    </ul>
+    <div class="nav-actions" id="navActions"></div>
+  </nav>
+</header>
+
+<main id="main" class="container section" style="max-width:780px;">
+  <div id="authGate">
+    <p class="muted">Checking your session…</p>
+  </div>
+
+  <div id="formWrap" hidden>
+    <h1>Add a grave to the map</h1>
+    <p class="muted" style="margin-bottom:24px;">Fill in what you know. A photo of the headstone helps a lot. An administrator will review this before it appears publicly.</p>
+
+    <div id="formAlert"></div>
+
+    <form id="graveForm" class="form-card" novalidate>
+      <div class="field">
+        <label for="cemeteryId">Cemetery</label>
+        <select id="cemeteryId" name="cemeteryId" required></select>
+      </div>
+
+      <div class="field">
+        <label>Grave location (GPS)</label>
+        <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" type="button" id="useGpsBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Use my current GPS location
+          </button>
+          <span class="muted" id="gpsStatus" style="align-self:center; font-size:0.85rem;">No location set yet — stand at the grave and tap the button, or drop a pin on the map.</span>
+        </div>
+        <div id="pickerMap" class="location-picker-map"></div>
+        <div class="hint">Drag the pin to fine-tune the exact spot. <span id="coordsLabel" class="mono"></span></div>
+        <input type="hidden" id="latitude" name="latitude" required>
+        <input type="hidden" id="longitude" name="longitude" required>
+        <input type="hidden" id="gpsAccuracy" name="gpsAccuracy">
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="firstName">First name</label>
+          <input id="firstName" name="firstName" type="text" required maxlength="80">
+        </div>
+        <div class="field">
+          <label for="lastName">Last name</label>
+          <input id="lastName" name="lastName" type="text" required maxlength="80">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="maidenName">Maiden name <span class="muted">(optional)</span></label>
+        <input id="maidenName" name="maidenName" type="text" maxlength="80">
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="dateOfBirth">Date of birth <span class="muted">(optional)</span></label>
+          <input id="dateOfBirth" name="dateOfBirth" type="date">
+        </div>
+        <div class="field">
+          <label for="dateOfDeath">Date of death <span class="muted">(optional)</span></label>
+          <input id="dateOfDeath" name="dateOfDeath" type="date">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="plotReference">Plot reference <span class="muted">(optional)</span></label>
+        <input id="plotReference" name="plotReference" type="text" maxlength="120" placeholder="e.g. Section C, Row 4, Plot 12">
+      </div>
+
+      <div class="field">
+        <label for="epitaph">Epitaph <span class="muted">(optional)</span></label>
+        <input id="epitaph" name="epitaph" type="text" maxlength="300" placeholder="Words inscribed on the headstone">
+      </div>
+
+      <div class="field">
+        <label for="biography">Biography <span class="muted">(optional)</span></label>
+        <textarea id="biography" name="biography" maxlength="4000" placeholder="Anything you'd like visitors to know"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="photoInput">Photos <span class="muted">(optional, up to 5, JPEG/PNG/WEBP, 8MB each)</span></label>
+        <div class="photo-drop" id="photoDrop">
+          <input id="photoInput" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden">
+          <p style="margin:0;">Click to choose photos, or drag them here</p>
+        </div>
+        <div class="photo-previews" id="photoPreviews"></div>
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit" id="submitBtn">Submit for review</button>
+    </form>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+<script src="/js/submit.js"></script>
+</body>
+</html>
