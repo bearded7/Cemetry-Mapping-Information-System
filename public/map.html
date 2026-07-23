@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live map &amp; directions — Greenwood Registry</title>
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="anonymous">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="anonymous">
+<style>
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  main { flex: 1; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 3C10 3 6 8 6 13.5C6 20 16 29 16 29C16 29 26 20 26 13.5C26 8 22 3 16 3Z" stroke="#3F5D48" stroke-width="1.8"/><path d="M12 16V10C12 8.3 13.3 7 15 7H17C18.7 7 20 8.3 20 10V16" stroke="#A9814B" stroke-width="1.6"/><path d="M11 16H21" stroke="#A9814B" stroke-width="1.6"/></svg>
+      Greenwood Registry
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/map.html" class="active">Map &amp; directions</a></li>
+      <li><a href="/search.html">Search records</a></li>
+      <li><a href="/submit-grave.html">Add a grave</a></li>
+    </ul>
+    <div class="nav-actions" id="navActions"></div>
+  </nav>
+</header>
+
+<main id="main">
+  <div class="map-shell">
+    <section class="map-panel" aria-label="Grave search">
+      <div class="map-panel-header">
+        <h1 style="font-size:1.2rem; margin-bottom:10px;">Find a grave</h1>
+        <form class="map-search" id="searchForm" role="search">
+          <label for="mapSearchInput" class="visually-hidden">Search by name</label>
+          <input id="mapSearchInput" type="text" placeholder="Search by first or last name…" autocomplete="off">
+          <button class="btn btn-primary btn-sm" type="submit">Search</button>
+        </form>
+      </div>
+      <div class="map-panel-body" id="resultsBody">
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <p>Search for a name, or pan and zoom the map to browse graves in view.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="map-wrap" aria-label="Cemetery map">
+      <div id="map"></div>
+      <button class="btn btn-secondary locate-btn" id="locateBtn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Use my location
+      </button>
+      <div class="route-banner" id="routeBanner" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#3F5D48" stroke-width="2" stroke-linejoin="round"/></svg>
+        <div>
+          <div id="routeSummary" style="font-weight:600;">Calculating route…</div>
+          <div id="routeSteps" class="muted" style="font-size:0.82rem; max-width:340px;"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="closeRoute" type="button" aria-label="Close directions">✕</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin="anonymous"></script>
+<script src="/js/map.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My submissions — Greenwood Registry</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="nav">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 3C10 3 6 8 6 13.5C6 20 16 29 16 29C16 29 26 20 26 13.5C26 8 22 3 16 3Z" stroke="#3F5D48" stroke-width="1.8"/><path d="M12 16V10C12 8.3 13.3 7 15 7H17C18.7 7 20 8.3 20 10V16" stroke="#A9814B" stroke-width="1.6"/><path d="M11 16H21" stroke="#A9814B" stroke-width="1.6"/></svg>
+      Greenwood Registry
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/map.html">Map &amp; directions</a></li>
+      <li><a href="/search.html">Search records</a></li>
+      <li><a href="/submit-grave.html">Add a grave</a></li>
+    </ul>
+    <div class="nav-actions" id="navActions"></div>
+  </nav>
+</header>
+
+<main class="container section">
+  <div class="page-header" style="border:none; padding-top:0;">
+    <h1>My submissions</h1>
+    <p class="muted">Track the review status of graves you've added.</p>
+  </div>
+  <div id="list"><p class="muted">Loading…</p></div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script>
+(function () {
+  function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+  const badgeClass = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected' };
+
+  async function load() {
+    const list = document.getElementById('list');
+    let user;
+    try { ({ user } = await Api.get('/api/auth/me')); } catch (_) { user = null; }
+    if (!user) { window.location.href = '/login.html?next=' + encodeURIComponent('/my-submissions.html'); return; }
+
+    try {
+      const { graves } = await Api.get('/api/graves/mine');
+      if (graves.length === 0) {
+        list.innerHTML = `<div class="empty-state"><p>You haven't submitted any graves yet.</p><a class="btn btn-primary btn-sm" href="/submit-grave.html">Add your first grave</a></div>`;
+        return;
+      }
+      list.innerHTML = `<div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+        <tbody>
+          ${graves.map((g) => `
+            <tr>
+              <td>${escapeHtml(g.first_name)} ${escapeHtml(g.last_name)}</td>
+              <td><span class="badge ${badgeClass[g.status]}">${g.status}</span>${g.status === 'rejected' && g.rejection_reason ? `<div class="muted" style="font-size:0.8rem; margin-top:4px;">${escapeHtml(g.rejection_reason)}</div>` : ''}</td>
+              <td class="muted">${new Date(g.created_at).toLocaleDateString()}</td>
+              <td>${g.status === 'approved' ? `<a class="btn btn-ghost btn-sm" href="/map.html?graveId=${g.id}">View on map</a>` : ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table></div>`;
+    } catch (err) {
+      list.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>
