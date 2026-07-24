@@ -1,33 +1,53 @@
 {
-  "name": "cemetery-system",
-  "version": "1.0.0",
-  "description": "",
+  "name": "cemetery-mapping-information-system",
+  "version": "2.0.0",
+  "description": "Cemetery Mapping and Information System - Locate graves easily",
   "main": "server.js",
-  "engines": {
-    "node": ">=22.5.0"
-  },
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
+    "dev": "nodemon server.js",
     "seed": "node db/seed.js",
-    "backup": "node db/backup.js"
+    "migrate": "node db/migrate.js",
+    "test": "jest"
   },
-  "keywords": ["cemetery", "gis", "mapping"],
-  "author": "",
-  "license": "Apache-2.0",
-  "description": "Cemetery Mapping & Information System - locate and navigate to graves using GPS.",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "compression": "^1.8.1",
-    "cookie": "^2.0.1",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.6.0",
-    "express-session": "^1.19.0",
-    "express-validator": "^7.3.2",
-    "helmet": "^8.3.0",
-    "morgan": "^1.11.0",
-    "multer": "^2.2.0",
-    "uuid": "^14.0.1"
-  }
+    "express": "^4.18.2",
+    "ejs": "^3.1.9",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "express-session": "^1.17.3",
+    "connect-pg-simple": "^9.0.0",
+    "pg": "^8.11.3",
+    "multer": "^1.4.5-lts.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.10.0",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0",
+    "leaflet": "^1.9.4",
+    "leaflet-geosearch": "^3.10.0",
+    "axios": "^1.5.0",
+    "validator": "^13.11.0",
+    "uuid": "^9.0.0",
+    "bcrypt": "^5.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.6.4",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "cemetery",
+    "mapping",
+    "grave-locator",
+    "gis",
+    "memorial"
+  ],
+  "author": "Bearded7",
+  "license": "MIT"
 }
