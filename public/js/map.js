@@ -1,291 +1,370 @@
-(function () {
-  'use strict';
+/**
+ * Cemetery Mapping Information System - Map Controller
+ */
 
-  const OSRM_BASE = 'https://router.project-osrm.org/route/v1/foot';
-
-  let map, clusterGroup, userMarker, userAccuracyCircle, routeLayer;
-  let watchId = null;
-  let routeRecalcTimer = null;
-  let activeGrave = null;
-  const graveMarkers = new Map(); // grave id -> marker
-
-  function escapeHtml(str) {
-    return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-    }[c]));
+class CemeteryMap {
+  constructor() {
+    this.map = null;
+    this.markers = {
+      cemeteries: [],
+      graves: []
+    };
+    this.currentMarkers = [];
+    this.selectedGrave = null;
+    this.initMap();
+    this.loadData();
+    this.setupEventListeners();
   }
 
-  function formatYears(g) {
-    const b = g.date_of_birth ? g.date_of_birth.slice(0, 4) : '?';
-    const d = g.date_of_death ? g.date_of_death.slice(0, 4) : '?';
-    if (b === '?' && d === '?') return '';
-    return `${b} – ${d}`;
-  }
-
-  function graveIcon() {
-    return L.divIcon({
-      className: 'grave-marker',
-      html: `<svg width="26" height="34" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg">
-        <path d="M13 1C6 1 1 6.4 1 12.8 1 21 13 33 13 33s12-12 12-20.2C25 6.4 20 1 13 1z" fill="#3F5D48" stroke="#22262A" stroke-width="0.5"/>
-        <circle cx="13" cy="13" r="5.4" fill="#F4F2ED"/>
-      </svg>`,
-      iconSize: [26, 34],
-      iconAnchor: [13, 34],
-      popupAnchor: [0, -30],
+  initMap() {
+    // Initialize map
+    this.map = L.map('map', {
+      center: [20.0, 0.0],
+      zoom: 2,
+      zoomControl: true,
+      fadeAnimation: true
     });
-  }
 
-  function userIcon() {
-    return L.divIcon({
-      className: 'user-marker',
-      html: `<div style="width:18px;height:18px;border-radius:50%;background:#2E6BE6;border:3px solid #fff;box-shadow:0 0 0 2px rgba(46,107,230,0.35);"></div>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
-    });
-  }
-
-  function popupHtml(g) {
-    const years = formatYears(g);
-    return `
-      <div class="grave-popup">
-        <div class="name">${escapeHtml(g.first_name)} ${escapeHtml(g.last_name)}</div>
-        <div class="dates">${escapeHtml(years)}${g.plot_reference ? ' · ' + escapeHtml(g.plot_reference) : ''}</div>
-        <div class="actions">
-          <button class="btn btn-primary btn-sm" data-directions="${g.id}">Get directions</button>
-          <a class="btn btn-ghost btn-sm" href="/grave.html?id=${g.id}">Details</a>
-        </div>
-      </div>`;
-  }
-
-  function addOrUpdateGraveMarker(g) {
-    if (graveMarkers.has(g.id)) return;
-    const marker = L.marker([g.latitude, g.longitude], { icon: graveIcon() });
-    marker.bindPopup(popupHtml(g));
-    marker.on('popupopen', (e) => {
-      const btn = e.popup._contentNode.querySelector('[data-directions]');
-      if (btn) btn.addEventListener('click', () => startDirections(g));
-    });
-    graveMarkers.set(g.id, marker);
-    clusterGroup.addLayer(marker);
-  }
-
-  function debounce(fn, ms) {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-  }
-
-  const loadGravesInView = debounce(async () => {
-    const b = map.getBounds();
-    try {
-      const { graves } = await Api.get(
-        `/api/graves?minLat=${b.getSouth()}&maxLat=${b.getNorth()}&minLng=${b.getWest()}&maxLng=${b.getEast()}&limit=1000`
-      );
-      graves.forEach(addOrUpdateGraveMarker);
-    } catch (err) {
-      console.error('Failed to load graves for map view:', err);
-    }
-  }, 350);
-
-  function renderResults(graves) {
-    const body = document.getElementById('resultsBody');
-    if (graves.length === 0) {
-      body.innerHTML = `<div class="empty-state"><p>No matching graves found. Try a different spelling, or check the record has been approved yet.</p></div>`;
-      return;
-    }
-    body.innerHTML = graves.map((g) => `
-      <div class="grave-result" data-id="${g.id}" tabindex="0" role="button">
-        <div class="name">${escapeHtml(g.first_name)} ${escapeHtml(g.last_name)}</div>
-        <div class="dates">${escapeHtml(formatYears(g))}</div>
-        ${g.plot_reference ? `<div class="plot">${escapeHtml(g.plot_reference)}</div>` : ''}
-      </div>
-    `).join('');
-
-    body.querySelectorAll('.grave-result').forEach((el) => {
-      const go = () => {
-        const g = graves.find((x) => String(x.id) === el.dataset.id);
-        if (!g) return;
-        addOrUpdateGraveMarker(g);
-        map.setView([g.latitude, g.longitude], 19, { animate: true });
-        setTimeout(() => graveMarkers.get(g.id).openPopup(), 300);
-      };
-      el.addEventListener('click', go);
-      el.addEventListener('keypress', (e) => { if (e.key === 'Enter') go(); });
-    });
-  }
-
-  async function runSearch(q) {
-    if (!q.trim()) return;
-    try {
-      const { graves } = await Api.get(`/api/graves/search?q=${encodeURIComponent(q)}`);
-      renderResults(graves);
-    } catch (err) {
-      document.getElementById('resultsBody').innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
-    }
-  }
-
-  // ---- Geolocation (live position) -------------------------------------
-  function startLiveLocation() {
-    if (!navigator.geolocation) {
-      alert('Your browser does not support geolocation.');
-      return;
-    }
-    if (watchId !== null) return; // already watching
-
-    watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        if (!userMarker) {
-          userMarker = L.marker([latitude, longitude], { icon: userIcon(), zIndexOffset: 1000 }).addTo(map);
-          userAccuracyCircle = L.circle([latitude, longitude], { radius: accuracy, color: '#2E6BE6', weight: 1, fillOpacity: 0.08 }).addTo(map);
-          map.setView([latitude, longitude], 18);
-        } else {
-          userMarker.setLatLng([latitude, longitude]);
-          userAccuracyCircle.setLatLng([latitude, longitude]);
-          userAccuracyCircle.setRadius(accuracy);
-        }
-        if (activeGrave) maybeRecalculateRoute(latitude, longitude);
-      },
-      (err) => {
-        alert('Could not get your location: ' + err.message);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-    );
-  }
-
-  function getCurrentPositionOnce() {
-    return new Promise((resolve, reject) => {
-      if (userMarker) {
-        const ll = userMarker.getLatLng();
-        return resolve({ lat: ll.lat, lng: ll.lng });
-      }
-      if (!navigator.geolocation) return reject(new Error('Geolocation is not supported by your browser.'));
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => reject(new Error('Could not get your location: ' + err.message)),
-        { enableHighAccuracy: true, timeout: 15000 }
-      );
-    });
-  }
-
-  // ---- Directions / routing ---------------------------------------------
-  let lastRouteCalc = 0;
-  function maybeRecalculateRoute(lat, lng) {
-    const now = Date.now();
-    if (now - lastRouteCalc < 12000) return; // throttle live recalculation
-    lastRouteCalc = now;
-    computeRoute({ lat, lng }, activeGrave);
-  }
-
-  async function computeRoute(from, grave) {
-    const url = `${OSRM_BASE}/${from.lng},${from.lat};${grave.longitude},${grave.latitude}?overview=full&geometries=geojson&steps=true`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Routing service unavailable');
-      const data = await res.json();
-      if (!data.routes || data.routes.length === 0) throw new Error('No walking route found');
-      const route = data.routes[0];
-
-      if (routeLayer) map.removeLayer(routeLayer);
-      routeLayer = L.geoJSON(route.geometry, { style: { color: '#3F5D48', weight: 5, opacity: 0.85 } }).addTo(map);
-
-      const minutes = Math.round(route.duration / 60);
-      const meters = Math.round(route.distance);
-      const distanceStr = meters >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${meters} m`;
-
-      const banner = document.getElementById('routeBanner');
-      banner.hidden = false;
-      document.getElementById('routeSummary').textContent =
-        `${distanceStr} · about ${minutes < 1 ? '1' : minutes} min walk to ${grave.first_name} ${grave.last_name}`;
-
-      const nextStep = route.legs[0] && route.legs[0].steps && route.legs[0].steps[1];
-      document.getElementById('routeSteps').textContent = nextStep
-        ? `Next: ${describeStep(nextStep)}`
-        : 'Follow the highlighted path.';
-    } catch (err) {
-      const banner = document.getElementById('routeBanner');
-      banner.hidden = false;
-      document.getElementById('routeSummary').textContent = 'Could not calculate a walking route.';
-      document.getElementById('routeSteps').textContent = err.message;
-    }
-  }
-
-  function describeStep(step) {
-    const type = step.maneuver && step.maneuver.type;
-    const modifier = step.maneuver && step.maneuver.modifier;
-    const name = step.name ? ` onto ${step.name}` : '';
-    if (type === 'arrive') return 'You will arrive at the grave.';
-    if (modifier) return `${modifier.replace('_', ' ')}${name}`;
-    return `Continue${name}`;
-  }
-
-  async function startDirections(grave) {
-    activeGrave = grave;
-    startLiveLocation();
-    try {
-      const from = await getCurrentPositionOnce();
-      lastRouteCalc = Date.now();
-      await computeRoute(from, grave);
-      map.fitBounds(L.latLngBounds([[from.lat, from.lng], [grave.latitude, grave.longitude]]), { padding: [60, 60] });
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  function closeRoute() {
-    activeGrave = null;
-    if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
-    document.getElementById('routeBanner').hidden = true;
-  }
-
-  // ---- Init ---------------------------------------------------------------
-  async function init() {
-    map = L.map('map', { zoomControl: true });
+    // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 20,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(this.map);
 
-    clusterGroup = L.markerClusterGroup({ maxClusterRadius: 45 });
-    map.addLayer(clusterGroup);
+    // Add scale control
+    L.control.scale({
+      position: 'bottomright',
+      metric: true,
+      imperial: true
+    }).addTo(this.map);
 
-    let center = [4.8594, 31.5713];
-    let zoom = 17;
-    try {
-      const { cemeteries } = await Api.get('/api/cemeteries');
-      if (cemeteries.length > 0) {
-        center = [cemeteries[0].center_lat, cemeteries[0].center_lng];
-        zoom = cemeteries[0].default_zoom || 18;
-      }
-    } catch (_) { /* fall back to default center */ }
+    // Add geocoder control
+    L.Control.geocoder({
+      defaultMarkGeocode: false,
+      position: 'topleft',
+      placeholder: 'Search location...',
+      errorMessage: 'Location not found'
+    }).on('markgeocode', (e) => {
+      const center = e.geocode.center;
+      this.map.setView(center, 15);
+    }).addTo(this.map);
 
-    map.setView(center, zoom);
-    map.on('moveend', loadGravesInView);
-    loadGravesInView();
-
-    document.getElementById('searchForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      runSearch(document.getElementById('mapSearchInput').value);
+    // Add fullscreen control
+    const fullscreenControl = L.control.fullscreen({
+      position: 'topleft',
+      title: 'Toggle Fullscreen'
     });
+    this.map.addControl(fullscreenControl);
 
-    document.getElementById('locateBtn').addEventListener('click', startLiveLocation);
-    document.getElementById('closeRoute').addEventListener('click', closeRoute);
+    // Add locate control
+    const locateControl = L.control.locate({
+      position: 'topleft',
+      strings: {
+        title: 'Show my location'
+      }
+    });
+    this.map.addControl(locateControl);
+  }
 
-    // Deep link support: /map.html?graveId=123
-    const params = new URLSearchParams(window.location.search);
-    const graveId = params.get('graveId');
-    const q = params.get('q');
-    if (graveId) {
-      Api.get(`/api/graves/${graveId}`).then(({ grave }) => {
-        addOrUpdateGraveMarker(grave);
-        map.setView([grave.latitude, grave.longitude], 19);
-        setTimeout(() => graveMarkers.get(grave.id).openPopup(), 400);
-      }).catch(() => {});
-    }
-    if (q) {
-      document.getElementById('mapSearchInput').value = q;
-      runSearch(q);
+  async loadData() {
+    try {
+      // Load cemeteries
+      const cemeteriesResponse = await fetch('/api/cemeteries');
+      const cemeteries = await cemeteriesResponse.json();
+      
+      // Load graves
+      const gravesResponse = await fetch('/api/graves');
+      const graves = await gravesResponse.json();
+
+      // Populate cemetery dropdown
+      this.populateCemeteryDropdown(cemeteries);
+
+      // Add markers
+      this.addCemeteryMarkers(cemeteries);
+      this.addGraveMarkers(graves);
+
+      // Fit map to show all markers
+      if (this.currentMarkers.length > 0) {
+        const group = L.featureGroup(this.currentMarkers);
+        this.map.fitBounds(group.getBounds(), { padding: [50, 50] });
+      }
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      this.showError('Failed to load cemetery data');
     }
   }
 
-  init();
-})();
+  addCemeteryMarkers(cemeteries) {
+    cemeteries.forEach(cemetery => {
+      if (!cemetery.latitude || !cemetery.longitude) return;
+
+      const marker = L.marker([cemetery.latitude, cemetery.longitude], {
+        icon: this.getCemeteryIcon(),
+        title: cemetery.name
+      });
+
+      // Create popup content
+      const popupContent = `
+        <div class="popup-content">
+          <h6>${cemetery.name}</h6>
+          <p>${cemetery.address || ''}</p>
+          <p class="text-muted small">
+            <i class="fas fa-grave"></i> ${cemetery.total_graves || 0} graves
+          </p>
+          <a href="/cemeteries/${cemetery.id}" class="btn btn-sm btn-primary">
+            View Details
+          </a>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent, {
+        maxWidth: 300,
+        className: 'popup-cemetery'
+      });
+
+      marker.on('click', () => {
+        this.loadGravesForCemetery(cemetery.id);
+      });
+
+      marker.addTo(this.map);
+      this.currentMarkers.push(marker);
+      this.markers.cemeteries.push(marker);
+    });
+  }
+
+  addGraveMarkers(graves) {
+    graves.forEach(grave => {
+      if (!grave.latitude || !grave.longitude) return;
+
+      const marker = L.marker([grave.latitude, grave.longitude], {
+        icon: this.getGraveIcon(),
+        title: grave.deceased_name
+      });
+
+      const popupContent = `
+        <div class="popup-content">
+          <h6>${grave.deceased_name}</h6>
+          <p>${grave.birth_date || ''} - ${grave.death_date || ''}</p>
+          <p class="text-muted small">${grave.section || ''} ${grave.plot_number || ''}</p>
+          <button class="btn btn-sm btn-info" onclick="window.cemeteryMap.viewGrave('${grave.id}')">
+            View Details
+          </button>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent, {
+        maxWidth: 300,
+        className: 'popup-grave'
+      });
+
+      marker.addTo(this.map);
+      this.currentMarkers.push(marker);
+      this.markers.graves.push(marker);
+    });
+  }
+
+  getCemeteryIcon() {
+    return L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div class="marker-pin cemetery-pin"><i class="fas fa-church"></i></div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -30]
+    });
+  }
+
+  getGraveIcon() {
+    return L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div class="marker-pin grave-pin"><i class="fas fa-cross"></i></div>`,
+      iconSize: [25, 25],
+      iconAnchor: [12, 25],
+      popupAnchor: [0, -25]
+    });
+  }
+
+  populateCemeteryDropdown(cemeteries) {
+    const dropdown = document.getElementById('search-cemetery');
+    if (!dropdown) return;
+
+    cemeteries.forEach(cemetery => {
+      const option = document.createElement('option');
+      option.value = cemetery.id;
+      option.textContent = cemetery.name;
+      dropdown.appendChild(option);
+    });
+  }
+
+  async loadGravesForCemetery(cemeteryId) {
+    try {
+      const response = await fetch(`/api/cemeteries/${cemeteryId}/graves`);
+      const graves = await response.json();
+      
+      // Update results sidebar
+      this.displaySearchResults(graves);
+    } catch (error) {
+      console.error('Error loading graves:', error);
+    }
+  }
+
+  displaySearchResults(graves) {
+    const container = document.getElementById('search-results');
+    if (!container) return;
+
+    if (!graves || graves.length === 0) {
+      container.innerHTML = '<p class="text-muted">No graves found.</p>';
+      return;
+    }
+
+    let html = '<ul class="list-unstyled">';
+    graves.forEach(grave => {
+      html += `
+        <li class="search-result-item mb-2 p-2 border rounded" 
+            onclick="window.cemeteryMap.viewGrave('${grave.id}')">
+          <strong>${grave.deceased_name}</strong>
+          <br>
+          <small class="text-muted">
+            ${grave.birth_date || ''} - ${grave.death_date || ''}
+            ${grave.plot_number ? ` | Plot ${grave.plot_number}` : ''}
+          </small>
+        </li>
+      `;
+    });
+    html += '</ul>';
+
+    container.innerHTML = html;
+  }
+
+  async viewGrave(graveId) {
+    try {
+      const response = await fetch(`/api/graves/${graveId}`);
+      const grave = await response.json();
+      
+      this.selectedGrave = grave;
+      this.showGraveModal(grave);
+      
+      // Center map on grave
+      if (grave.latitude && grave.longitude) {
+        this.map.setView([grave.latitude, grave.longitude], 18);
+      }
+    } catch (error) {
+      console.error('Error loading grave details:', error);
+    }
+  }
+
+  showGraveModal(grave) {
+    const modal = new bootstrap.Modal(document.getElementById('graveModal'));
+    const content = document.getElementById('grave-info-content');
+
+    content.innerHTML = `
+      <div class="row">
+        <div class="col-md-6">
+          <h5>${grave.deceased_name}</h5>
+          <p><strong>Born:</strong> ${grave.birth_date || 'Unknown'}</p>
+          <p><strong>Died:</strong> ${grave.death_date || 'Unknown'}</p>
+          <p><strong>Age:</strong> ${grave.age_at_death || 'Unknown'}</p>
+          <p><strong>Location:</strong> ${grave.section || ''} ${grave.block || ''} ${grave.plot_number || ''}</p>
+          <p><strong>Cemetery:</strong> ${grave.cemetery_name || 'Unknown'}</p>
+        </div>
+        <div class="col-md-6">
+          ${grave.epitaph ? `<p><strong>Epitaph:</strong> "${grave.epitaph}"</p>` : ''}
+          ${grave.image_url ? `<img src="${grave.image_url}" class="img-fluid rounded" alt="${grave.deceased_name}">` : ''}
+          ${grave.occupation ? `<p><strong>Occupation:</strong> ${grave.occupation}</p>` : ''}
+          ${grave.nationality ? `<p><strong>Nationality:</strong> ${grave.nationality}</p>` : ''}
+        </div>
+      </div>
+      <div class="mt-3">
+        <a href="/graves/${grave.id}" class="btn btn-primary">View Full Details</a>
+        ${grave.latitude && grave.longitude ? `
+          <a href="https://www.openstreetmap.org/?mlat=${grave.latitude}&mlon=${grave.longitude}" 
+             target="_blank" class="btn btn-outline-secondary">
+            <i class="fas fa-directions me-1"></i>Directions
+          </a>
+        ` : ''}
+      </div>
+    `;
+
+    modal.show();
+  }
+
+  setupEventListeners() {
+    // Search form
+    const searchForm = document.getElementById('search-form');
+    if (searchForm) {
+      searchForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('search-name').value;
+        const cemeteryId = document.getElementById('search-cemetery').value;
+        await this.searchGraves(name, cemeteryId);
+      });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // 'F' for fullscreen
+      if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
+        if (this.map.fullscreen) {
+          this.map.toggleFullscreen();
+        }
+      }
+    });
+  }
+
+  async searchGraves(name, cemeteryId) {
+    try {
+      let url = '/api/graves/search?';
+      const params = new URLSearchParams();
+      if (name) params.append('name', name);
+      if (cemeteryId) params.append('cemeteryId', cemeteryId);
+      
+      const response = await fetch(url + params.toString());
+      const graves = await response.json();
+      
+      this.displaySearchResults(graves);
+      
+      // Highlight markers on map
+      this.highlightGraveMarkers(graves);
+    } catch (error) {
+      console.error('Error searching graves:', error);
+    }
+  }
+
+  highlightGraveMarkers(graves) {
+    // Reset all markers
+    this.markers.graves.forEach(marker => {
+      marker.setIcon(this.getGraveIcon());
+    });
+
+    // Highlight found graves
+    const foundIds = graves.map(g => g.id);
+    this.markers.graves.forEach(marker => {
+      if (foundIds.includes(marker.options.id)) {
+        // Highlight marker
+        marker.setIcon(this.getHighlightedGraveIcon());
+      }
+    });
+  }
+
+  getHighlightedGraveIcon() {
+    return L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div class="marker-pin grave-pin highlighted"><i class="fas fa-cross"></i></div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -30]
+    });
+  }
+
+  showError(message) {
+    const container = document.getElementById('search-results');
+    if (container) {
+      container.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+    }
+  }
+}
+
+// Initialize map when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  window.cemeteryMap = new CemeteryMap();
+});
