@@ -1,142 +1,127 @@
--- Cemetery Mapping & Information System — database schema
--- Uses SQLite (node:sqlite). Foreign keys + indexes keep lookups fast
--- even as the number of graves and users grows.
+-- Initial schema for Cemetery Mapping Information System
+-- This migration creates all necessary tables and indexes
 
-PRAGMA foreign_keys = ON;
+-- Enable PostGIS extension for geospatial queries
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- ---------------------------------------------------------------------
--- Users: visitors who register, and admins who moderate submissions.
--- Passwords are always stored as bcrypt hashes, never plaintext.
--- ---------------------------------------------------------------------
+-- Users table
 CREATE TABLE IF NOT EXISTS users (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    full_name       TEXT NOT NULL,
-    email           TEXT NOT NULL UNIQUE,
-    password_hash   TEXT NOT NULL,
-    role            TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-    is_active       INTEGER NOT NULL DEFAULT 1,
-    failed_logins   INTEGER NOT NULL DEFAULT 0,
-    locked_until    TEXT,
-    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'user',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
--- ---------------------------------------------------------------------
--- Cemeteries: supports multiple cemetery grounds, each centred on a
--- real-world coordinate used to initialise the map.
--- ---------------------------------------------------------------------
+-- Cemeteries table with geospatial support
 CREATE TABLE IF NOT EXISTS cemeteries (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    name            TEXT NOT NULL,
-    description     TEXT,
-    address         TEXT,
-    center_lat      REAL NOT NULL,
-    center_lng      REAL NOT NULL,
-    default_zoom    INTEGER NOT NULL DEFAULT 18,
-    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  address TEXT NOT NULL,
+  city VARCHAR(100),
+  state VARCHAR(100),
+  country VARCHAR(100),
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  location GEOMETRY(Point, 4326),
+  total_graves INTEGER DEFAULT 0,
+  established_year INTEGER,
+  contact_phone VARCHAR(50),
+  contact_email VARCHAR(255),
+  website_url VARCHAR(255),
+  opening_hours VARCHAR(255),
+  image_url TEXT,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ---------------------------------------------------------------------
--- Graves: the core record. Every grave has a precise GPS coordinate so
--- it can be placed on the live map and routed to.
--- Only rows with status = 'approved' are ever shown to the public.
--- ---------------------------------------------------------------------
+-- Graves table with geospatial support
 CREATE TABLE IF NOT EXISTS graves (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    cemetery_id         INTEGER NOT NULL REFERENCES cemeteries(id) ON DELETE CASCADE,
-    submitted_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    reviewed_by         INTEGER REFERENCES users(id) ON DELETE SET NULL,
-
-    first_name          TEXT NOT NULL,
-    last_name            TEXT NOT NULL,
-    maiden_name          TEXT,
-    date_of_birth        TEXT,          -- ISO date, nullable (unknown)
-    date_of_death         TEXT,
-    epitaph              TEXT,
-    biography             TEXT,
-    plot_reference        TEXT,          -- section/row/plot number, human readable
-
-    latitude             REAL NOT NULL,
-    longitude            REAL NOT NULL,
-    gps_accuracy_m        REAL,          -- accuracy reported by the submitter's device
-
-    status               TEXT NOT NULL DEFAULT 'pending'
-                             CHECK (status IN ('pending', 'approved', 'rejected')),
-    rejection_reason      TEXT,
-
-    created_at            TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at            TEXT NOT NULL DEFAULT (datetime('now')),
-    reviewed_at            TEXT
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cemetery_id UUID REFERENCES cemeteries(id) ON DELETE CASCADE,
+  section VARCHAR(100),
+  block VARCHAR(100),
+  plot_number VARCHAR(100),
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  location GEOMETRY(Point, 4326),
+  deceased_name VARCHAR(255) NOT NULL,
+  birth_date DATE,
+  death_date DATE,
+  age_at_death INTEGER,
+  gender VARCHAR(50),
+  nationality VARCHAR(100),
+  occupation VARCHAR(255),
+  epitaph TEXT,
+  grave_type VARCHAR(100),
+  status VARCHAR(50) DEFAULT 'active',
+  image_url TEXT,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT valid_death_date CHECK (death_date <= CURRENT_DATE),
+  CONSTRAINT valid_birth_date CHECK (birth_date < death_date)
 );
 
--- Search & map performance: these are the columns every public query
--- filters or sorts by.
-CREATE INDEX IF NOT EXISTS idx_graves_status        ON graves(status);
-CREATE INDEX IF NOT EXISTS idx_graves_cemetery       ON graves(cemetery_id);
-CREATE INDEX IF NOT EXISTS idx_graves_last_name      ON graves(last_name);
-CREATE INDEX IF NOT EXISTS idx_graves_name           ON graves(last_name, first_name);
-CREATE INDEX IF NOT EXISTS idx_graves_status_cemetery ON graves(status, cemetery_id);
-CREATE INDEX IF NOT EXISTS idx_graves_submitted_by   ON graves(submitted_by);
-CREATE INDEX IF NOT EXISTS idx_graves_dod            ON graves(date_of_death);
-
--- Full text search over name/epitaph/biography for fast fuzzy search.
-CREATE VIRTUAL TABLE IF NOT EXISTS graves_fts USING fts5(
-    first_name, last_name, maiden_name, epitaph, biography, plot_reference,
-    content='graves', content_rowid='id'
-);
-
--- Keep the FTS index in sync with the graves table automatically.
-CREATE TRIGGER IF NOT EXISTS graves_ai AFTER INSERT ON graves BEGIN
-    INSERT INTO graves_fts(rowid, first_name, last_name, maiden_name, epitaph, biography, plot_reference)
-    VALUES (new.id, new.first_name, new.last_name, new.maiden_name, new.epitaph, new.biography, new.plot_reference);
-END;
-CREATE TRIGGER IF NOT EXISTS graves_ad AFTER DELETE ON graves BEGIN
-    INSERT INTO graves_fts(graves_fts, rowid, first_name, last_name, maiden_name, epitaph, biography, plot_reference)
-    VALUES ('delete', old.id, old.first_name, old.last_name, old.maiden_name, old.epitaph, old.biography, old.plot_reference);
-END;
-CREATE TRIGGER IF NOT EXISTS graves_au AFTER UPDATE ON graves BEGIN
-    INSERT INTO graves_fts(graves_fts, rowid, first_name, last_name, maiden_name, epitaph, biography, plot_reference)
-    VALUES ('delete', old.id, old.first_name, old.last_name, old.maiden_name, old.epitaph, old.biography, old.plot_reference);
-    INSERT INTO graves_fts(rowid, first_name, last_name, maiden_name, epitaph, biography, plot_reference)
-    VALUES (new.id, new.first_name, new.last_name, new.maiden_name, new.epitaph, new.biography, new.plot_reference);
-END;
-
--- ---------------------------------------------------------------------
--- Photos: multiple photos per grave, always tied to the review status
--- of their parent grave record.
--- ---------------------------------------------------------------------
+-- Grave photos table
 CREATE TABLE IF NOT EXISTS grave_photos (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    grave_id        INTEGER NOT NULL REFERENCES graves(id) ON DELETE CASCADE,
-    file_path       TEXT NOT NULL,       -- relative path under /uploads
-    original_name   TEXT,
-    caption         TEXT,
-    uploaded_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  grave_id UUID REFERENCES graves(id) ON DELETE CASCADE,
+  photo_url TEXT NOT NULL,
+  caption TEXT,
+  uploaded_by UUID REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_photos_grave ON grave_photos(grave_id);
 
--- ---------------------------------------------------------------------
--- Sessions: server-side session store (avoids in-memory sessions,
--- which leak memory and don't survive a restart).
--- ---------------------------------------------------------------------
+-- Visits/guestbook table
+CREATE TABLE IF NOT EXISTS visits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  grave_id UUID REFERENCES graves(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  visitor_name VARCHAR(255),
+  visit_date DATE DEFAULT CURRENT_DATE,
+  message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sessions table for express-session
 CREATE TABLE IF NOT EXISTS sessions (
-    sid         TEXT PRIMARY KEY,
-    data        TEXT NOT NULL,
-    expires_at  INTEGER NOT NULL
+  sid VARCHAR(255) PRIMARY KEY,
+  sess JSON NOT NULL,
+  expire TIMESTAMP NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
--- ---------------------------------------------------------------------
--- Audit log: who approved/rejected/edited what, for accountability.
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS audit_log (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    action      TEXT NOT NULL,
-    entity_type TEXT NOT NULL,
-    entity_id   INTEGER,
-    details     TEXT,
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id);
+-- Create geospatial indexes for fast querying
+CREATE INDEX IF NOT EXISTS idx_graves_cemetery ON graves(cemetery_id);
+CREATE INDEX IF NOT EXISTS idx_graves_deceased_name ON graves(deceased_name);
+CREATE INDEX IF NOT EXISTS idx_graves_location ON graves USING GIST(location);
+CREATE INDEX IF NOT EXISTS idx_cemeteries_location ON cemeteries USING GIST(location);
+CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
+
+-- Create triggers for updated_at timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_users_updated_at 
+  BEFORE UPDATE ON users 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_cemeteries_updated_at 
+  BEFORE UPDATE ON cemeteries 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_graves_updated_at 
+  BEFORE UPDATE ON graves 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
