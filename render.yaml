@@ -1,16 +1,11 @@
 services:
   - type: web
     name: cemetery-mapping-system
-    env: node
+    runtime: docker
+    repo: https://github.com/bearded7/Cemetry-Mapping-Information-System/tree/master
     plan: free
-    buildCommand: |
-      npm install --production=false
-      npm run migrate || true
-      npm run seed || true
-    startCommand: npm start
+    dockerfilePath: ./Dockerfile
     envVars:
-      - key: NODE_VERSION
-        value: 18.0.0
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
