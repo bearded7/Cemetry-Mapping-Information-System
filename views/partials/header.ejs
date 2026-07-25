@@ -1,72 +1,21 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
-    <a class="navbar-brand" href="/">
-      <i class="fas fa-church me-2"></i>
-      Cemetery Mapping System
-    </a>
+    <a class="navbar-brand" href="/"><i class="fas fa-church me-2"></i>Cemetery System</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">
-            <i class="fas fa-home me-1"></i>Home
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/map' ? 'active' : '' %>" href="/map">
-            <i class="fas fa-map me-1"></i>Map
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/cemeteries' ? 'active' : '' %>" href="/cemeteries">
-            <i class="fas fa-tree me-1"></i>Cemeteries
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/graves' ? 'active' : '' %>" href="/graves">
-            <i class="fas fa-cross me-1"></i>Graves
-          </a>
-        </li>
-      </ul>
-      <ul class="navbar-nav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/map">Map</a></li>
+        <li class="nav-item"><a class="nav-link" href="/cemeteries">Cemeteries</a></li>
+        <li class="nav-item"><a class="nav-link" href="/graves">Graves</a></li>
         <% if (isAuthenticated) { %>
-          <li class="nav-item">
-            <a class="nav-link <%= currentPath === '/messages' ? 'active' : '' %>" href="/messages">
-              <i class="fas fa-envelope me-1"></i>Messages
-              <% if (unreadCount > 0) { %>
-                <span class="badge bg-danger ms-1"><%= unreadCount %></span>
-              <% } %>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
-              <i class="fas fa-user-circle me-1"></i>Dashboard
-            </a>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user me-1"></i><%= user.full_name %>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="/profile"><i class="fas fa-id-card me-2"></i>Profile</a></li>
-              <li><a class="dropdown-item" href="/notifications"><i class="fas fa-bell me-2"></i>Notifications</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger" href="/auth/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-            </ul>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/auth/logout">Logout</a></li>
         <% } else { %>
-          <li class="nav-item">
-            <a class="nav-link <%= currentPath === '/auth/login' ? 'active' : '' %>" href="/auth/login">
-              <i class="fas fa-sign-in-alt me-1"></i>Login
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link <%= currentPath === '/auth/register' ? 'active' : '' %>" href="/auth/register">
-              <i class="fas fa-user-plus me-1"></i>Register
-            </a>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="/auth/login">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="/auth/register">Register</a></li>
         <% } %>
       </ul>
     </div>

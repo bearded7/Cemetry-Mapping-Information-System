@@ -8,7 +8,9 @@
     "dev": "nodemon server.js",
     "seed": "node db/seed.js",
     "migrate": "node db/migrate.js",
-    "setup": "bash scripts/setup.sh"
+    "setup": "bash scripts/install.sh",
+    "docker-build": "docker-compose build",
+    "docker-up": "docker-compose up -d"
   },
   "dependencies": {
     "express": "^4.18.2",

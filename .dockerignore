@@ -1,7 +1,0 @@
-node_modules
-data
-uploads/graves/*
-uploads/messages/*
-.env
-.git
-*.log

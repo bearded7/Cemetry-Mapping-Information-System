@@ -4,8 +4,6 @@ services:
     env: node
     plan: free
     buildCommand: |
-      chmod +x scripts/prebuild.sh
-      ./scripts/prebuild.sh
       npm install --production=false
       npm run migrate || true
       npm run seed || true
