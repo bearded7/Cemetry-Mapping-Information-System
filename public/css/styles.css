@@ -1,6 +1,5 @@
 /* Cemetery Mapping Information System - Main Styles */
 
-/* Global Styles */
 :root {
   --primary-color: #2c3e7a;
   --secondary-color: #3498db;
@@ -9,6 +8,8 @@
   --danger-color: #e74c3c;
   --light-bg: #f8f9fa;
   --dark-text: #2c3e50;
+  --border-radius: 15px;
+  --transition-speed: 0.3s;
 }
 
 * {
@@ -21,6 +22,26 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--dark-text);
   overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dark Mode */
+body.dark-mode {
+  --dark-text: #f8f9fa;
+  --light-bg: #2c3e50;
+  background-color: #1a2332;
+  color: #f8f9fa;
+}
+
+body.dark-mode .bg-light {
+  background-color: #2c3e50 !important;
+}
+
+body.dark-mode .card {
+  background-color: #2c3e50;
+  color: #f8f9fa;
 }
 
 /* Hero Section */
@@ -32,6 +53,10 @@ body {
   align-items: center;
 }
 
+body.dark-mode .hero-section {
+  background: linear-gradient(135deg, #1a2332 0%, #2c3e50 100%);
+}
+
 .hero-section h1 {
   font-weight: 700;
   line-height: 1.2;
@@ -40,16 +65,20 @@ body {
 .hero-image-container {
   position: relative;
   overflow: hidden;
-  border-radius: 15px;
+  border-radius: var(--border-radius);
   box-shadow: 0 20px 40px rgba(0,0,0,0.15);
 }
 
 /* Features Section */
 .features-section .card {
   border: none;
-  border-radius: 15px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: var(--border-radius);
+  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
   background: white;
+}
+
+body.dark-mode .features-section .card {
+  background: #2c3e50;
 }
 
 .features-section .card:hover {
@@ -74,6 +103,10 @@ body {
   padding: 60px 0;
 }
 
+body.dark-mode .stats-section {
+  background: #1a2332;
+}
+
 .stats-section h2 {
   font-weight: 700;
 }
@@ -93,6 +126,11 @@ body {
   padding: 0 !important;
 }
 
+body.dark-mode .sidebar {
+  background: #2c3e50;
+  border-right-color: #4a6586;
+}
+
 .sidebar-content {
   padding: 20px;
 }
@@ -109,6 +147,10 @@ body {
 
 .search-result-item:hover {
   background-color: #f8f9fa;
+}
+
+body.dark-mode .search-result-item:hover {
+  background-color: #3a4a6a;
 }
 
 /* Custom Markers */
@@ -176,6 +218,10 @@ body {
   border-radius: 8px;
 }
 
+body.dark-mode .legend {
+  background: #2c3e50;
+}
+
 .legend-marker {
   display: inline-block;
   width: 20px;
@@ -183,103 +229,4 @@ body {
   border-radius: 50%;
 }
 
-.cemetery-marker {
-  background: var(--primary-color);
-}
-
-.grave-marker {
-  background: var(--secondary-color);
-}
-
-/* Animations */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .hero-section {
-    min-height: auto;
-    padding: 40px 0;
-  }
-  
-  .hero-section h1 {
-    font-size: 2.5rem;
-  }
-  
-  #map {
-    height: 50vh;
-  }
-  
-  .sidebar {
-    height: auto;
-    max-height: 50vh;
-  }
-}
-
-/* Dashboard Styles */
-.dashboard-stats .card {
-  border: none;
-  border-radius: 15px;
-  transition: transform 0.3s ease;
-}
-
-.dashboard-stats .card:hover {
-  transform: translateY(-5px);
-}
-
-.stat-icon {
-  font-size: 2.5rem;
-  opacity: 0.7;
-}
-
-/* Loading Spinner */
-.spinner-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255,255,255,0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.spinner {
-  width: 60px;
-  height: 60px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Toast Notifications */
-.toast-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-}
-
-.toast {
-  min-width: 300px;
-}
+.cemetery-marker
