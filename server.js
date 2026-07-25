@@ -174,6 +174,22 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// replace individual route imports with:
+const routes = require('./routes');
+
+// Register all routes
+routes.registerRoutes(app);
+
+// Or register routes individually:
+app.use('/', routes.viewsRoutes);
+app.use('/auth', routes.authRoutes);
+app.use('/api', routes.apiRoutes);
+app.use('/profile', routes.profileRoutes);
+app.use('/admin', routes.adminRoutes);
+app.use('/cemeteries', routes.cemeteryRoutes);
+app.use('/graves', routes.graveRoutes);
+app.use('/messages', routes.messageRoutes);
+
 // Routes
 const authRoutes = require('./routes/auth');
 const cemeteryRoutes = require('./routes/cemeteries');
