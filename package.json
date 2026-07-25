@@ -1,14 +1,16 @@
 {
   "name": "cemetery-mapping-information-system",
-  "version": "2.0.0",
-  "description": "Cemetery Mapping and Information System - Locate graves easily",
+  "version": "3.0.0",
+  "description": "Comprehensive Cemetery Mapping System with Messaging, GPS, and Directions",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node db/seed.js",
     "migrate": "node db/migrate.js",
-    "test": "jest"
+    "setup": "bash scripts/setup.sh",
+    "docker-build": "docker-compose build",
+    "docker-up": "docker-compose up -d"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -26,11 +28,16 @@
     "compression": "^1.7.4",
     "morgan": "^1.10.0",
     "leaflet": "^1.9.4",
-    "leaflet-geosearch": "^3.10.0",
+    "leaflet-routing-machine": "^3.2.12",
+    "leaflet-control-geocoder": "^2.4.0",
     "axios": "^1.5.0",
     "validator": "^13.11.0",
     "uuid": "^9.0.0",
-    "bcrypt": "^5.1.1"
+    "bcrypt": "^5.1.1",
+    "sharp": "^0.32.5",
+    "socket.io": "^4.7.2",
+    "nodemailer": "^6.9.5",
+    "express-fileupload": "^1.4.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
@@ -46,7 +53,9 @@
     "mapping",
     "grave-locator",
     "gis",
-    "memorial"
+    "memorial",
+    "gps",
+    "directions"
   ],
   "author": "Bearded7",
   "license": "MIT"
