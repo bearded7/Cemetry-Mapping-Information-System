@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <div class="container py-4">
+    <div class="row">
+      <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-plus me-2"></i>Add New Grave</h4>
+          </div>
+          <div class="card-body">
+            <% if (error) { %>
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i><%= error %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            <% } %>
+
+            <form action="/graves/create" method="POST" enctype="multipart/form-data">
+              <!-- Cemetery Selection -->
+              <div class="mb-3">
+                <label for="cemetery_id" class="form-label">Cemetery *</label>
+                <select class="form-select" id="cemetery_id" name="cemetery_id" required>
+                  <option value="">Select a cemetery</option>
+                  <% cemeteries.forEach(cemetery => { %>
+                    <option value="<%= cemetery.id %>" <%= formData.cemetery_id === cemetery.id ? 'selected' : '' %>>
+                      <%= cemetery.name %>
+                    </option>
+                  <% }) %>
+                </select>
+              </div>
+
+              <!-- Deceased Information -->
+              <h5 class="mt-4 mb-3">Deceased Information</h5>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="deceased_name" class="form-label">Full Name *</label>
+                  <input type="text" class="form-control" id="deceased_name" name="deceased_name" 
+                         value="<%= formData.deceased_name || '' %>" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="gender" class="form-label">Gender</label>
+                  <select class="form-select" id="gender" name="gender">
+                    <option value="">Select</option>
+                    <option value="Male" <%= formData.gender === 'Male' ? 'selected' : '' %>>Male</option>
+                    <option value="Female" <%= formData.gender === 'Female' ? 'selected' : '' %>>Female</option>
+                    <option value="Other" <%= formData.gender === 'Other' ? 'selected' : '' %>>Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="birth_date" class="form-label">Date of Birth</label>
+                  <input type="date" class="form-control" id="birth_date" name="birth_date" 
+                         value="<%= formData.birth_date || '' %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="death_date" class="form-label">Date of Death</label>
+                  <input type="date" class="form-control" id="death_date" name="death_date" 
+                         value="<%= formData.death_date || '' %>">
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="nationality" class="form-label">Nationality</label>
+                  <input type="text" class="form-control" id="nationality" name="nationality" 
+                         value="<%= formData.nationality || '' %>">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="occupation" class="form-label">Occupation</label>
+                  <input type="text" class="form-control" id="occupation" name="occupation" 
+                         value="<%= formData.occupation || '' %>">
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="epitaph" class="form-label">Epitaph</label>
+                <textarea class="form-control" id="epitaph" name="epitaph" rows="2"><%= formData.epitaph || '' %></textarea>
+              </div>
+
+              <!-- Location Details -->
+              <h5 class="mt-4 mb-3">Location Details</h5>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="section" class="form-label">Section</label>
+                  <input type="text" class="form-control" id="section" name="section" 
+                         value="<%= formData.section || '' %>" placeholder="e.g., A">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="block" class="form-label">Block</label>
+                  <input type="text" class="form-control" id="block" name="block" 
+                         value="<%= formData.block || '' %>" placeholder="e.g., 1">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="plot_number" class="form-label">Plot Number</label>
+                  <input type="text" class="form-control" id="plot_number" name="plot_number" 
+                         value="<%= formData.plot_number || '' %>" placeholder="e.g., 101">
+                </div>
+              </div>
+
+              <!-- GPS Coordinates -->
+              <h5 class="mt-4 mb-3">GPS Coordinates *</h5>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="latitude" class="form-label">Latitude</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-arrow-up"></i></span>
+                    <input type="number" step="any" class="form-control" id="latitude" name="latitude" 
+                           value="<%= formData.latitude || '' %>" required>
+                  </div>
+                  <small class="text-muted">e.g., 39.7817</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="longitude" class="form-label">Longitude</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-arrow-right"></i></span>
+                    <input type="number" step="any" class="form-control" id="longitude" name="longitude" 
+                           value="<%= formData.longitude || '' %>" required>
+                  </div>
+                  <small class="text-muted">e.g., -89.6501</small>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <button type="button" class="btn btn-outline-secondary" onclick="getCurrentLocation()">
+                  <i class="fas fa-map-pin me-2"></i>Use My Current Location
+                </button>
+              </div>
+
+              <!-- Photos -->
+              <h5 class="mt-4 mb-3">Photos</h5>
+              <div class="mb-3">
+                <label for="photos" class="form-label">Upload Photos</label>
+                <input type="file" class="form-control" id="photos" name="photos" multiple accept="image/*">
+                <small class="text-muted">You can upload multiple photos. First photo will be primary.</small>
+              </div>
+              <div id="photo-preview" class="row g-2"></div>
+
+              <!-- Submit -->
+              <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-2"></i>Save Grave Record
+                </button>
+                <a href="/dashboard" class="btn btn-secondary ms-2">Cancel</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    // Photo preview
+    document.getElementById('photos').addEventListener('change', function(e) {
+      const preview = document.getElementById('photo-preview');
+      preview.innerHTML = '';
+      const files = Array.from(this.files);
+      
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const col = document.createElement('div');
+          col.className = 'col-md-3 col-4';
+          col.innerHTML = `
+            <div class="position-relative">
+              <img src="${e.target.result}" class="img-fluid rounded" style="height: 100px; object-fit: cover;">
+              <span class="badge bg-primary position-absolute top-0 end-0 m-1">${index + 1}</span>
+              ${index === 0 ? '<span class="badge bg-success position-absolute bottom-0 end-0 m-1">Primary</span>' : ''}
+            </div>
+          `;
+          preview.appendChild(col);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    // Get current location
+    function getCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            document.getElementById('latitude').value = position.coords.latitude;
+            document.getElementById('longitude').value = position.coords.longitude;
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+            alert.innerHTML = `
+              <i class="fas fa-check-circle me-2"></i>Location captured successfully!
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('form').prepend(alert);
+          },
+          function(error) {
+            alert('Error getting location: ' + error.message);
+          }
+        );
+      } else {
+        alert('Geolocation is not supported by your browser');
+      }
+    }
+  </script>
+</body>
+</html>

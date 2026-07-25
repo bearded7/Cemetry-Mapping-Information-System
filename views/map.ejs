@@ -29,7 +29,9 @@
             <div class="mb-3">
               <select class="form-select" id="search-cemetery">
                 <option value="">All Cemeteries</option>
-                <!-- Dynamically populated -->
+                <% cemeteries.forEach(cemetery => { %>
+                  <option value="<%= cemetery.id %>"><%= cemetery.name %></option>
+                <% }) %>
               </select>
             </div>
             <button type="submit" class="btn btn-primary w-100">
@@ -39,7 +41,7 @@
 
           <h5><i class="fas fa-list me-2"></i>Results</h5>
           <div id="search-results" class="search-results">
-            <p class="text-muted">Click on the map or search to see results.</p>
+            <p class="text-muted text-center">Click on the map or search to see results.</p>
           </div>
 
           <hr>
@@ -54,6 +56,10 @@
               <span class="legend-marker grave-marker me-2"></span>
               <span>Grave</span>
             </div>
+            <div class="d-flex align-items-center">
+              <span class="legend-marker user-marker me-2"></span>
+              <span>Your Location</span>
+            </div>
           </div>
 
           <% if (isAuthenticated) { %>
@@ -63,6 +69,13 @@
                 <i class="fas fa-plus me-2"></i>Add New Grave
               </a>
               <small class="text-muted d-block mt-1">GPS coordinates required</small>
+            </div>
+          <% } else { %>
+            <hr>
+            <div class="text-center">
+              <a href="/auth/login" class="btn btn-outline-primary w-100">
+                <i class="fas fa-sign-in-alt me-2"></i>Login to Add Graves
+              </a>
             </div>
           <% } %>
         </div>
@@ -97,6 +110,12 @@
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Pass data to JavaScript
+    const cemeteryData = <%- JSON.stringify(cemeteries) %>;
+    const graveData = <%- JSON.stringify(graves) %>;
+    const userAuthenticated = <%= isAuthenticated %>;
+  </script>
   <script src="/public/js/map.js"></script>
 </body>
 </html>

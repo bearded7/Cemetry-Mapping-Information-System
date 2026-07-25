@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <div class="container py-4">
+    <div class="row">
+      <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><%= message.subject %></h5>
+              <span class="badge <%= message.is_read ? 'bg-secondary' : 'bg-primary' %>">
+                <%= message.is_read ? 'Read' : 'Unread' %>
+              </span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="message-meta mb-3">
+              <p>
+                <strong>From:</strong> <%= message.sender_name || 'System' %> (<%= message.sender_email || 'N/A' %>)
+                <br>
+                <strong>To:</strong> <%= message.receiver_name || 'N/A' %> (<%= message.receiver_email || 'N/A' %>)
+                <br>
+                <strong>Date:</strong> <%= new Date(message.created_at).toLocaleString() %>
+              </p>
+            </div>
+
+            <hr>
+
+            <div class="message-body">
+              <p><%= message.message.replace(/\n/g, '<br>') %></p>
+            </div>
+
+            <% if (attachments && attachments.length > 0) { %>
+              <hr>
+              <h6>Attachments</h6>
+              <div class="d-flex flex-wrap gap-2">
+                <% attachments.forEach(attachment => { %>
+                  <a href="<%= attachment.file_path %>" class="btn btn-outline-secondary btn-sm" download>
+                    <i class="fas fa-paperclip me-1"></i><%= attachment.file_name %>
+                    <span class="badge bg-secondary"><%= (attachment.file_size / 1024).toFixed(1) %> KB</span>
+                  </a>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary" onclick="replyMessage()">
+                <i class="fas fa-reply me-2"></i>Reply
+              </button>
+              <a href="/messages" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Inbox
+              </a>
+            </div>
+
+            <!-- Reply Form (hidden by default) -->
+            <div id="reply-form" style="display: none;" class="mt-4">
+              <h6>Reply to <%= message.sender_name %></h6>
+              <form action="/messages/<%= message.id %>/reply" method="POST">
+                <div class="mb-3">
+                  <textarea class="form-control" name="message" rows="4" required placeholder="Type your reply..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">
+                  <i class="fas fa-paper-plane me-2"></i>Send Reply
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="hideReply()">Cancel</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    function replyMessage() {
+      document.getElementById('reply-form').style.display = 'block';
+      document.querySelector('#reply-form textarea').focus();
+    }
+
+    function hideReply() {
+      document.getElementById('reply-form').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

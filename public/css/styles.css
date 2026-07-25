@@ -229,4 +229,195 @@ body.dark-mode .legend {
   border-radius: 50%;
 }
 
-.cemetery-marker
+/* Grave Popup Styles */
+.grave-popup {
+  min-width: 200px;
+}
+
+.grave-thumbnail {
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grave-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.grave-thumbnail .no-photo {
+  color: #6c757d;
+  font-size: 2rem;
+}
+
+.grave-name {
+  font-weight: 600;
+  color: #2c3e7a;
+  margin-bottom: 2px;
+}
+
+.grave-dates {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 5px;
+}
+
+.grave-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.grave-actions .btn {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+}
+
+/* Marker Thumbnails */
+.marker-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.grave-pin.has-photo {
+  border: 2px solid white;
+  background: transparent;
+}
+
+.marker-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.grave-pin:not(.has-photo) {
+  background: #3498db;
+  width: 30px;
+  height: 30px;
+}
+
+.start-pin {
+  background: #27ae60;
+  width: 30px;
+  height: 30px;
+}
+
+.start-pin i {
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.end-pin {
+  background: #e74c3c;
+  width: 30px;
+  height: 30px;
+}
+
+.end-pin i {
+  font-size: 14px;
+}
+
+.user-pin {
+  background: #f39c12;
+  width: 30px;
+  height: 30px;
+  border: 2px solid white;
+}
+
+.user-pin i {
+  font-size: 14px;
+}
+
+/* Messages */
+.message-item {
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.message-item:hover {
+  background-color: #f8f9fa;
+}
+
+.message-item.unread {
+  background-color: #e8f4f8;
+  font-weight: 500;
+}
+
+.message-attachment {
+  display: inline-block;
+  margin: 5px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #dee2e6;
+}
+
+.message-attachment i {
+  margin-right: 8px;
+}
+
+/* Admin Panel */
+.admin-card {
+  border-left: 4px solid #3498db;
+  margin-bottom: 20px;
+}
+
+.admin-card.pending {
+  border-left-color: #f39c12;
+}
+
+.admin-card.approved {
+  border-left-color: #27ae60;
+}
+
+.admin-card.rejected {
+  border-left-color: #e74c3c;
+}
+
+/* Notification Badge */
+.notification-badge {
+  position: relative;
+}
+
+.notification-badge .badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Responsive Map */
+@media (max-width: 768px) {
+  #map {
+    height: 50vh;
+  }
+  
+  .sidebar {
+    height: auto;
+    max-height: 50vh;
+  }
+  
+  .grave-popup {
+    min-width: auto;
+    max-width: 250px;
+  }
+  
+  .grave-thumbnail {
+    height: 100px;
+  }
+}
