@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: cemetery-mapping-system
+    env: node
+    plan: free
+    buildCommand: |
+      npm install
+      npm run migrate
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cemetery-db
+          property: connectionString
+    healthCheckPath: /
+    autoDeploy: true
+
+  - type: postgresql
+    name: cemetery-db
+    plan: free
+    ipAllowList: []
+    postgresMajorVersion: 15
+    databaseName: cemetery
+    user: admin

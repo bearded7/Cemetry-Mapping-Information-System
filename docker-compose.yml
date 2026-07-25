@@ -1,27 +1,38 @@
+version: '3.8'
+
 services:
   app:
     build: .
-    image: cemetery-registry:latest
-    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: production
-      PORT: 3000
-      SESSION_SECRET: ${SESSION_SECRET}
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://admin:password@db:5432/cemetery
+      - SESSION_SECRET=dev-secret-change-me
+    depends_on:
+      - db
     volumes:
-      - cemetery_data:/app/data
-      - cemetery_uploads_graves:/app/uploads/graves
-      - cemetery_uploads_messages:/app/uploads/messages
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      - ./uploads:/app/uploads
+    networks:
+      - cemetery-network
+
+  db:
+    image: postgis/postgis:15-3.4
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=cemetery
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    networks:
+      - cemetery-network
 
 volumes:
-  cemetery_data:
-  cemetery_uploads_graves:
-  cemetery_uploads_messages:
+  postgres-data:
+
+networks:
+  cemetery-network:
+    driver: bridge
