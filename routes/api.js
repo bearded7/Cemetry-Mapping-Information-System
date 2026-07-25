@@ -152,4 +152,22 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Log directions request
+router.post('/directions/log', isAuthenticated, async (req, res) => {
+  const { graveId, startLat, startLng, endLat, endLng } = req.body;
+  
+  try {
+    const pool = getPool();
+    await pool.query(
+      `INSERT INTO directions_requests (grave_id, user_id, start_lat, start_lng, end_lat, end_lng)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [graveId, req.session.user.id, startLat, startLng, endLat, endLng]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Log directions error:', error);
+    res.status(500).json({ error: 'Failed to log directions request' });
+  }
+});
+
 module.exports = router;
