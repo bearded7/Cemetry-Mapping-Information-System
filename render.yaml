@@ -28,7 +28,7 @@ services:
         value: admin@cemetery.com
       - key: ADMIN_PASSWORD
         value: admin123
-      - key: DATABASE_URL
+      - key: postgresql://postgres:[YOUR-PASSWORD]@db.owbhglfazbmfglelbkxa.supabase.co:5432/postgres
         fromDatabase:
           name: cemetery-db
           property: connectionString
