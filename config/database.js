@@ -168,6 +168,41 @@ const runMigrations = async () => {
   }
 };
 
+/**
+ * Database Configuration - PostgreSQL Only
+ * No SQLite imports
+ */
+
+const { Pool } = require('pg');
+
+// Create database pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' 
+    ? { rejectUnauthorized: false } 
+    : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Test connection
+pool.on('connect', () => {
+  console.log('✅ Database connected successfully');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Database error:', err);
+});
+
+// Export the pool
+module.exports = {
+  getPool: () => pool,
+  pool: pool,
+  query: (text, params) => pool.query(text, params),
+  connect: () => pool.connect()
+};
+
 module.exports = {
   getPool,
   initDatabase,
