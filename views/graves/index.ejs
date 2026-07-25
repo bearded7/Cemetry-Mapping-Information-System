@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2><i class="fas fa-cross me-2"></i>All Graves</h2>
+      <div>
+        <a href="/graves/new" class="btn btn-primary">
+          <i class="fas fa-plus me-2"></i>Add Grave
+        </a>
+        <a href="/map" class="btn btn-outline-secondary ms-2">
+          <i class="fas fa-map me-2"></i>View Map
+        </a>
+      </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <form action="/graves" method="GET" class="row g-3">
+          <div class="col-md-4">
+            <input type="text" class="form-control" name="search" placeholder="Search by name..." 
+                   value="<%= search || '' %>">
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" name="cemetery">
+              <option value="">All Cemeteries</option>
+              <% if (cemeteries) { %>
+                <% cemeteries.forEach(cem => { %>
+                  <option value="<%= cem.id %>" <%= selectedCemetery === cem.id ? 'selected' : '' %>>
+                    <%= cem.name %>
+                  </option>
+                <% }) %>
+              <% } %>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" name="sort">
+              <option value="name" <%= sort === 'name' ? 'selected' : '' %>>Sort by Name</option>
+              <option value="date" <%= sort === 'date' ? 'selected' : '' %>>Sort by Date</option>
+              <option value="recent" <%= sort === 'recent' ? 'selected' : '' %>>Most Recent</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-search me-2"></i>Filter
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Results Count -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <p class="text-muted mb-0">
+        <i class="fas fa-info-circle me-1"></i>
+        Showing <strong><%= graves ? graves.length : 0 %></strong> graves
+      </p>
+      <% if (graves && graves.length > 0) { %>
+        <div class="btn-group">
+          <button class="btn btn-outline-secondary btn-sm" onclick="setView('grid')" id="gridView">
+            <i class="fas fa-th"></i>
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="setView('list')" id="listView">
+            <i class="fas fa-list"></i>
+          </button>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Graves Grid -->
+    <div id="graves-container">
+      <% if (graves && graves.length > 0) { %>
+        <div class="row g-4" id="graves-grid">
+          <% graves.forEach(grave => { %>
+            <div class="col-md-6 col-lg-4 grave-item">
+              <div class="card grave-card h-100">
+                <div class="grave-image-container position-relative">
+                  <% if (grave.primary_photo) { %>
+                    <img src="<%= grave.primary_photo %>" class="card-img-top" alt="<%= grave.deceased_name %>" 
+                         style="height: 220px; object-fit: cover;">
+                  <% } else { %>
+                    <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" 
+                         style="height: 220px;">
+                      <i class="fas fa-cross fa-4x text-white opacity-50"></i>
+                    </div>
+                  <% } %>
+                  <div class="position-absolute top-0 end-0 m-2">
+                    <span class="badge <%= grave.is_approved ? 'bg-success' : 'bg-warning' %>">
+                      <%= grave.is_approved ? 'Approved' : 'Pending' %>
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <h5 class="card-title"><%= grave.deceased_name %></h5>
+                  <p class="card-text text-muted">
+                    <small>
+                      <i class="fas fa-calendar-alt me-1"></i>
+                      <%= grave.birth_date ? new Date(grave.birth_date).toLocaleDateString() : '?' %> - 
+                      <%= grave.death_date ? new Date(grave.death_date).toLocaleDateString() : '?' %>
+                    </small>
+                  </p>
+                  <p class="card-text">
+                    <small class="text-muted">
+                      <i class="fas fa-map-pin me-1"></i>
+                      <%= grave.cemetery_name || 'Unknown Cemetery' %>
+                    </small>
+                  </p>
+                  <p class="card-text">
+                    <small class="text-muted">
+                      <% if (grave.section) { %>
+                        <span class="me-2"><i class="fas fa-layer-group me-1"></i>Sec <%= grave.section %></span>
+                      <% } %>
+                      <% if (grave.plot_number) { %>
+                        <span><i class="fas fa-hashtag me-1"></i>Plot <%= grave.plot_number %></span>
+                      <% } %>
+                    </small>
+                  </p>
+                  <div class="d-flex gap-2">
+                    <a href="/graves/<%= grave.id %>" class="btn btn-primary btn-sm flex-grow-1">
+                      <i class="fas fa-info-circle me-1"></i>View Details
+                    </a>
+                    <button class="btn btn-success btn-sm" onclick="window.location.href='/map?grave=<%= grave.id %>'">
+                      <i class="fas fa-map-pin me-1"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="text-center py-5">
+          <i class="fas fa-cross fa-4x text-muted mb-3"></i>
+          <h4>No Graves Found</h4>
+          <p class="text-muted">
+            <% if (search) { %>
+              No graves match your search criteria.
+            <% } else { %>
+              There are no graves recorded in the system yet.
+            <% } %>
+          </p>
+          <a href="/graves/new" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Your First Grave
+          </a>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Pagination -->
+    <% if (pagination && pagination.totalPages > 1) { %>
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+            <a class="page-link" href="?page=<%= pagination.currentPage - 1 %><%= search ? '&search=' + search : '' %>">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+          <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+            <li class="page-item <%= i === pagination.currentPage ? 'active' : '' %>">
+              <a class="page-link" href="?page=<%= i %><%= search ? '&search=' + search : '' %>"><%= i %></a>
+            </li>
+          <% } %>
+          <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+            <a class="page-link" href="?page=<%= pagination.currentPage + 1 %><%= search ? '&search=' + search : '' %>">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    <% } %>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    // View toggle
+    function setView(view) {
+      const grid = document.getElementById('graves-grid');
+      const gridBtn = document.getElementById('gridView');
+      const listBtn = document.getElementById('listView');
+      
+      if (view === 'grid') {
+        grid.className = 'row g-4';
+        gridBtn.className = 'btn btn-primary btn-sm';
+        listBtn.className = 'btn btn-outline-secondary btn-sm';
+        localStorage.setItem('graveView', 'grid');
+      } else {
+        grid.className = 'list-view';
+        gridBtn.className = 'btn btn-outline-secondary btn-sm';
+        listBtn.className = 'btn btn-primary btn-sm';
+        localStorage.setItem('graveView', 'list');
+      }
+    }
+
+    // Load view preference
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedView = localStorage.getItem('graveView') || 'grid';
+      setView(savedView);
+      
+      // Add hover effects to cards
+      document.querySelectorAll('.grave-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-5px)';
+          this.style.boxShadow = '0 10px 20px rgba(0,0,0,0.15)';
+        });
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+          this.style.boxShadow = 'none';
+        });
+      });
+    });
+
+    // Quick view modal
+    function quickView(graveId) {
+      // Implement quick view modal if needed
+      window.location.href = `/graves/${graveId}`;
+    }
+  </script>
+
+  <style>
+    .grave-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: none;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .grave-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+    
+    .grave-image-container {
+      background: #f8f9fa;
+      position: relative;
+    }
+    
+    .list-view .grave-item {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+    
+    .list-view .grave-card {
+      flex-direction: row;
+    }
+    
+    .list-view .grave-image-container {
+      flex: 0 0 200px;
+      height: 200px;
+    }
+    
+    .list-view .card-img-top {
+      height: 200px !important;
+      width: 200px;
+    }
+    
+    @media (max-width: 768px) {
+      .list-view .grave-card {
+        flex-direction: column;
+      }
+      .list-view .grave-image-container {
+        flex: none;
+        height: auto;
+      }
+      .list-view .card-img-top {
+        width: 100%;
+        height: 200px !important;
+      }
+    }
+  </style>
+</body>
+</html>

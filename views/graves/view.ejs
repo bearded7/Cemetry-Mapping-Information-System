@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <%- include('../partials/header') %>
+
+  <div class="container py-4">
+    <div class="row">
+      <div class="col-lg-8 mx-auto">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/graves">Graves</a></li>
+            <li class="breadcrumb-item active"><%= grave.deceased_name %></li>
+          </ol>
+        </nav>
+
+        <!-- Main Grave Card -->
+        <div class="card shadow mb-4">
+          <div class="row g-0">
+            <!-- Photo Section -->
+            <div class="col-md-5">
+              <div class="grave-photo-container">
+                <% if (photos && photos.length > 0) { %>
+                  <div id="gravePhotoCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                      <% photos.forEach((photo, index) => { %>
+                        <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
+                          <img src="<%= photo.photo_url %>" class="d-block w-100" alt="<%= grave.deceased_name %>" 
+                               style="height: 400px; object-fit: cover;">
+                          <div class="carousel-caption bg-dark bg-opacity-50 p-2">
+                            <small><%= photo.caption || '' %></small>
+                          </div>
+                        </div>
+                      <% }) %>
+                    </div>
+                    <% if (photos.length > 1) { %>
+                      <button class="carousel-control-prev" type="button" data-bs-target="#gravePhotoCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                      </button>
+                      <button class="carousel-control-next" type="button" data-bs-target="#gravePhotoCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                      </button>
+                    <% } %>
+                  </div>
+                <% } else { %>
+                  <div class="bg-secondary d-flex align-items-center justify-content-center" style="height: 400px;">
+                    <div class="text-center text-white">
+                      <i class="fas fa-cross fa-5x mb-3"></i>
+                      <p>No photos available</p>
+                    </div>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Information Section -->
+            <div class="col-md-7">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <h2 class="card-title"><%= grave.deceased_name %></h2>
+                  <span class="badge <%= grave.is_approved ? 'bg-success' : 'bg-warning' %> fs-6">
+                    <%= grave.is_approved ? '✅ Approved' : '⏳ Pending' %>
+                  </span>
+                </div>
+
+                <!-- Life Dates -->
+                <div class="life-dates mb-3">
+                  <h6 class="text-muted">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    <%= grave.birth_date ? new Date(grave.birth_date).toLocaleDateString('en-US', { 
+                      year: 'numeric', month: 'long', day: 'numeric' 
+                    }) : '?' %> 
+                    <i class="fas fa-minus mx-2"></i> 
+                    <%= grave.death_date ? new Date(grave.death_date).toLocaleDateString('en-US', { 
+                      year: 'numeric', month: 'long', day: 'numeric' 
+                    }) : '?' %>
+                  </h6>
+                  <% if (grave.age_at_death) { %>
+                    <p class="text-muted">
+                      <i class="fas fa-clock me-2"></i>Age: <%= grave.age_at_death %> years
+                    </p>
+                  <% } %>
+                </div>
+
+                <!-- Details -->
+                <div class="grave-details mb-3">
+                  <table class="table table-sm table-borderless">
+                    <tbody>
+                      <% if (grave.gender) { %>
+                        <tr>
+                          <td class="fw-bold"><i class="fas fa-venus-mars me-2"></i>Gender:</td>
+                          <td><%= grave.gender %></td>
+                        </tr>
+                      <% } %>
+                      <% if (grave.nationality) { %>
+                        <tr>
+                          <td class="fw-bold"><i class="fas fa-globe me-2"></i>Nationality:</td>
+                          <td><%= grave.nationality %></td>
+                        </tr>
+                      <% } %>
+                      <% if (grave.occupation) { %>
+                        <tr>
+                          <td class="fw-bold"><i class="fas fa-briefcase me-2"></i>Occupation:</td>
+                          <td><%= grave.occupation %></td>
+                        </tr>
+                      <% } %>
+                      <tr>
+                        <td class="fw-bold"><i class="fas fa-map-pin me-2"></i>Cemetery:</td>
+                        <td>
+                          <a href="/cemeteries/<%= grave.cemetery_id %>">
+                            <%= grave.cemetery_name || 'Unknown' %>
+                          </a>
+                        </td>
+                      </tr>
+                      <% if (grave.section || grave.block || grave.plot_number) { %>
+                        <tr>
+                          <td class="fw-bold"><i class="fas fa-layer-group me-2"></i>Location:</td>
+                          <td>
+                            <%= grave.section ? `Section ${grave.section}` : '' %>
+                            <%= grave.block ? `| Block ${grave.block}` : '' %>
+                            <%= grave.plot_number ? `| Plot ${grave.plot_number}` : '' %>
+                          </td>
+                        </tr>
+                      <% } %>
+                      <% if (grave.grave_type) { %>
+                        <tr>
+                          <td class="fw-bold"><i class="fas fa-tag me-2"></i>Grave Type:</td>
+                          <td><%= grave.grave_type %></td>
+                        </tr>
+                      <% } %>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Epitaph -->
+                <% if (grave.epitaph) { %>
+                  <div class="epitaph-box p-3 bg-light rounded mb-3">
+                    <h6><i class="fas fa-quote-left me-2 text-primary"></i>Epitaph</h6>
+                    <p class="mb-0 fst-italic">"<%= grave.epitaph %>"</p>
+                  </div>
+                <% } %>
+
+                <!-- Actions -->
+                <div class="d-flex gap-2 flex-wrap">
+                  <a href="/map?grave=<%= grave.id %>" class="btn btn-success">
+                    <i class="fas fa-map-marked-alt me-2"></i>View on Map
+                  </a>
+                  <% if (grave.latitude && grave.longitude) { %>
+                    <a href="https://www.openstreetmap.org/directions?from=&to=<%= grave.latitude %>%2C<%= grave.longitude %>" 
+                       target="_blank" class="btn btn-info text-white">
+                      <i class="fas fa-directions me-2"></i>Get Directions
+                    </a>
+                  <% } %>
+                  <% if (isAuthenticated && user.id === grave.created_by) { %>
+                    <a href="/graves/<%= grave.id %>/edit" class="btn btn-primary">
+                      <i class="fas fa-edit me-2"></i>Edit
+                    </a>
+                    <button class="btn btn-danger" onclick="deleteGrave('<%= grave.id %>')">
+                      <i class="fas fa-trash-alt me-2"></i>Delete
+                    </button>
+                  <% } %>
+                  <button class="btn btn-outline-secondary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Print
+                  </button>
+                </div>
+
+                <!-- Meta -->
+                <div class="mt-3 text-muted small">
+                  <p>
+                    <i class="fas fa-user me-1"></i>Added by: <%= grave.created_by_name || 'Unknown' %>
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-calendar me-1"></i>Added: <%= new Date(grave.created_at).toLocaleDateString() %>
+                    <% if (grave.updated_at && grave.updated_at !== grave.created_at) { %>
+                      <span class="mx-2">•</span>
+                      <i class="fas fa-edit me-1"></i>Updated: <%= new Date(grave.updated_at).toLocaleDateString() %>
+                    <% } %>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Photos -->
+        <% if (photos && photos.length > 1) { %>
+          <div class="card shadow mb-4">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-camera me-2"></i>All Photos</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <% photos.forEach((photo, index) => { %>
+                  <div class="col-md-3 col-4">
+                    <a href="<%= photo.photo_url %>" target="_blank">
+                      <img src="<%= photo.photo_url %>" class="img-fluid rounded" alt="<%= grave.deceased_name %>" 
+                           style="height: 150px; object-fit: cover; width: 100%;">
+                    </a>
+                  </div>
+                <% }) %>
+              </div>
+            </div>
+          </div>
+        <% } %>
+
+        <!-- Visits/Guestbook -->
+        <div class="card shadow mb-4">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-book me-2"></i>Visit Guestbook</h5>
+          </div>
+          <div class="card-body">
+            <% if (visits && visits.length > 0) { %>
+              <div class="visits-list">
+                <% visits.forEach(visit => { %>
+                  <div class="visit-item border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between">
+                      <strong><%= visit.visitor_name || 'Anonymous' %></strong>
+                      <small class="text-muted">
+                        <i class="fas fa-calendar me-1"></i>
+                        <%= new Date(visit.visit_date).toLocaleDateString() %>
+                      </small>
+                    </div>
+                    <% if (visit.message) { %>
+                      <p class="mb-0"><%= visit.message %></p>
+                    <% } %>
+                  </div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <p class="text-muted">No visits recorded yet.</p>
+            <% } %>
+
+            <!-- Add Visit -->
+            <% if (isAuthenticated) { %>
+              <hr>
+              <h6><i class="fas fa-plus me-2"></i>Leave a Message</h6>
+              <form action="/graves/<%= grave.id %>/visit" method="POST">
+                <div class="mb-2">
+                  <input type="text" class="form-control" name="visitor_name" placeholder="Your name" 
+                         value="<%= user.full_name %>">
+                </div>
+                <div class="mb-2">
+                  <textarea class="form-control" name="message" rows="2" placeholder="Share your memories..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <i class="fas fa-paper-plane me-1"></i>Post Message
+                </button>
+              </form>
+            <% } else { %>
+              <p class="text-muted mt-3">
+                <a href="/auth/login">Login</a> to leave a message.
+              </p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="text-center">
+          <a href="/graves" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Graves List
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/footer') %>
+
+  <script>
+    // Delete grave
+    function deleteGrave(graveId) {
+      if (confirm('Are you sure you want to delete this grave record? This action cannot be undone.')) {
+        fetch(`/graves/${graveId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.location.href = '/graves?success=Grave deleted successfully';
+          } else {
+            alert('Failed to delete grave: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while deleting the grave.');
+        });
+      }
+    }
+
+    // Add to favorites (optional)
+    function toggleFavorite(graveId) {
+      // Implement favorite functionality
+      const btn = document.querySelector('.favorite-btn');
+      btn.classList.toggle('text-danger');
+      btn.classList.toggle('text-muted');
+    }
+  </script>
+
+  <style>
+    .life-dates {
+      padding: 10px 0;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .epitaph-box {
+      border-left: 4px solid #2c3e7a;
+    }
+    
+    .grave-photo-container {
+      background: #1a1a1a;
+      border-radius: 8px 0 0 8px;
+      overflow: hidden;
+    }
+    
+    .carousel-item img {
+      height: 400px;
+      object-fit: cover;
+    }
+    
+    .visit-item:last-child {
+      border-bottom: none !important;
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    @media (max-width: 768px) {
+      .grave-photo-container {
+        border-radius: 8px 8px 0 0;
+      }
+      .carousel-item img {
+        height: 250px;
+      }
+    }
+    
+    @media print {
+      .btn, .breadcrumb, .carousel-control-prev, .carousel-control-next {
+        display: none !important;
+      }
+      .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+      }
+      .grave-photo-container {
+        height: 300px;
+      }
+    }
+  </style>
+</body>
+</html>
