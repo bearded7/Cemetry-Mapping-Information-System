@@ -1,0 +1,80 @@
+# ============================================================
+# Cemetery Mapping Information System - Docker Compose
+# Version: 3.0.0
+# ============================================================
+
+version: '3.8'
+
+services:
+  # Application Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cemetery-system-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@db:5432/cemetery_db
+      - SESSION_SECRET=dev-secret-change-me-in-production
+      - ADMIN_EMAIL=admin@cemetery.com
+      - ADMIN_PASSWORD=admin123
+      - PORT=3000
+      - BASE_URL=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - cemetery-network
+    restart: unless-stopped
+
+  # PostgreSQL Database Service
+  db:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: cemetery-system-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=cemetery_db
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=en_US.utf8
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - cemetery-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cemetery_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Adminer for database management (optional)
+  adminer:
+    image: adminer:latest
+    container_name: cemetery-system-adminer
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DESIGN=pepa-linha
+    networks:
+      - cemetery-network
+    restart: unless-stopped
+    profiles:
+      - dev
+      - admin
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  cemetery-network:
+    driver: bridge

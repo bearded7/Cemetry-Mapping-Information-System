@@ -1351,7 +1351,100 @@ services:
 EOF
 
 # ============================================================
-# 12. CREATE .GITIGNORE
+# 12. CREATE DOCKER FILES
+# ============================================================
+echo -e "${YELLOW}Creating Docker files...${NC}"
+
+# Create Dockerfile
+cat > Dockerfile << 'EOF'
+FROM node:18-alpine
+RUN apk add --no-cache python3 make g++ git curl && rm -rf /var/cache/apk/*
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --production=false && npm cache clean --force
+COPY . .
+RUN mkdir -p uploads/{profiles,graves,cemeteries,messages,thumbnails} logs public/{css,js,images} data/samples
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001 && chown -R nodejs:nodejs /app
+USER nodejs
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {r.statusCode === 200 ? process.exit(0) : process.exit(1)})"
+CMD ["npm", "start"]
+EOF
+
+# Create docker-compose.yml
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+services:
+  app:
+    build: .
+    container_name: cemetery-system-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@db:5432/cemetery_db
+      - SESSION_SECRET=dev-secret-change-me
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - cemetery-network
+    restart: unless-stopped
+  db:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: cemetery-system-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=cemetery_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - cemetery-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cemetery_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres-data:
+    driver: local
+networks:
+  cemetery-network:
+    driver: bridge
+EOF
+
+# Create .dockerignore
+cat > .dockerignore << 'EOF'
+node_modules/
+.env
+.env.local
+uploads/
+logs/
+*.log
+*.db
+*.sqlite
+.git/
+.gitignore
+Dockerfile
+docker-compose*.yml
+.dockerignore
+README.md
+LICENSE
+EOF
+
+echo -e "${GREEN}✅ Docker files created${NC}"
+
+# ============================================================
+# 13. CREATE .GITIGNORE
 # ============================================================
 cat > .gitignore << 'EOF'
 node_modules/
@@ -1371,7 +1464,7 @@ tmp/
 EOF
 
 # ============================================================
-# 13. CREATE README
+# 14. CREATE README
 # ============================================================
 cat > README.md << 'EOF'
 # Cemetery Mapping Information System

@@ -1,0 +1,94 @@
+# ============================================================
+# Cemetery Mapping Information System - Production Docker Compose
+# ============================================================
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cemetery-system-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-cemetery_db}
+      - SESSION_SECRET=${SESSION_SECRET:-super-secret-change-me}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@cemetery.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - PORT=3000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+      - logs:/app/logs
+    networks:
+      - cemetery-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  db:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: cemetery-system-db
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_DB=${DB_NAME:-cemetery_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - cemetery-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-cemetery_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # Nginx for production (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: cemetery-system-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./public:/usr/share/nginx/html/public:ro
+    depends_on:
+      - app
+    networks:
+      - cemetery-network
+    restart: always
+    profiles:
+      - nginx
+
+volumes:
+  postgres-data:
+    driver: local
+  uploads:
+    driver: local
+  logs:
+    driver: local
+
+networks:
+  cemetery-network:
+    driver: bridge
