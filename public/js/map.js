@@ -1,23 +1,22 @@
 /**
- * Cemetery Mapping Information System - Map Controller
+ * Cemetery Mapping System - Enhanced Map with GPS, Directions, and Thumbnails
  */
 
 class CemeteryMap {
   constructor() {
     this.map = null;
-    this.markers = {
-      cemeteries: [],
-      graves: []
-    };
-    this.currentMarkers = [];
+    this.markers = [];
+    this.routingControl = null;
+    this.currentLocation = null;
     this.selectedGrave = null;
+    this.userLocationMarker = null;
     this.initMap();
     this.loadData();
     this.setupEventListeners();
+    this.getUserLocation();
   }
 
   initMap() {
-    // Initialize map
     this.map = L.map('map', {
       center: [20.0, 0.0],
       zoom: 2,
@@ -25,7 +24,6 @@ class CemeteryMap {
       fadeAnimation: true
     });
 
-    // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap contributors'
@@ -38,7 +36,7 @@ class CemeteryMap {
       imperial: true
     }).addTo(this.map);
 
-    // Add geocoder control
+    // Add geocoder
     L.Control.geocoder({
       defaultMarkGeocode: false,
       position: 'topleft',
@@ -48,13 +46,6 @@ class CemeteryMap {
       const center = e.geocode.center;
       this.map.setView(center, 15);
     }).addTo(this.map);
-
-    // Add fullscreen control
-    const fullscreenControl = L.control.fullscreen({
-      position: 'topleft',
-      title: 'Toggle Fullscreen'
-    });
-    this.map.addControl(fullscreenControl);
 
     // Add locate control
     const locateControl = L.control.locate({
@@ -68,172 +59,188 @@ class CemeteryMap {
 
   async loadData() {
     try {
-      // Load cemeteries
-      const cemeteriesResponse = await fetch('/api/cemeteries');
-      const cemeteries = await cemeteriesResponse.json();
+      const [cemeteriesResponse, gravesResponse] = await Promise.all([
+        fetch('/api/cemeteries'),
+        fetch('/api/graves')
+      ]);
       
-      // Load graves
-      const gravesResponse = await fetch('/api/graves');
+      const cemeteries = await cemeteriesResponse.json();
       const graves = await gravesResponse.json();
 
-      // Populate cemetery dropdown
-      this.populateCemeteryDropdown(cemeteries);
-
-      // Add markers
       this.addCemeteryMarkers(cemeteries);
       this.addGraveMarkers(graves);
 
-      // Fit map to show all markers
-      if (this.currentMarkers.length > 0) {
-        const group = L.featureGroup(this.currentMarkers);
+      if (this.markers.length > 0) {
+        const group = L.featureGroup(this.markers);
         this.map.fitBounds(group.getBounds(), { padding: [50, 50] });
       }
-
     } catch (error) {
       console.error('Error loading data:', error);
       this.showError('Failed to load cemetery data');
     }
   }
 
-  addCemeteryMarkers(cemeteries) {
-    cemeteries.forEach(cemetery => {
-      if (!cemetery.latitude || !cemetery.longitude) return;
-
-      const marker = L.marker([cemetery.latitude, cemetery.longitude], {
-        icon: this.getCemeteryIcon(),
-        title: cemetery.name
-      });
-
-      // Create popup content
-      const popupContent = `
-        <div class="popup-content">
-          <h6>${cemetery.name}</h6>
-          <p>${cemetery.address || ''}</p>
-          <p class="text-muted small">
-            <i class="fas fa-grave"></i> ${cemetery.total_graves || 0} graves
-          </p>
-          <a href="/cemeteries/${cemetery.id}" class="btn btn-sm btn-primary">
-            View Details
-          </a>
-        </div>
-      `;
-
-      marker.bindPopup(popupContent, {
-        maxWidth: 300,
-        className: 'popup-cemetery'
-      });
-
-      marker.on('click', () => {
-        this.loadGravesForCemetery(cemetery.id);
-      });
-
-      marker.addTo(this.map);
-      this.currentMarkers.push(marker);
-      this.markers.cemeteries.push(marker);
-    });
-  }
-
   addGraveMarkers(graves) {
     graves.forEach(grave => {
       if (!grave.latitude || !grave.longitude) return;
 
-      const marker = L.marker([grave.latitude, grave.longitude], {
-        icon: this.getGraveIcon(),
-        title: grave.deceased_name
-      });
-
+      // Create custom popup with thumbnail
       const popupContent = `
-        <div class="popup-content">
-          <h6>${grave.deceased_name}</h6>
-          <p>${grave.birth_date || ''} - ${grave.death_date || ''}</p>
-          <p class="text-muted small">${grave.section || ''} ${grave.plot_number || ''}</p>
-          <button class="btn btn-sm btn-info" onclick="window.cemeteryMap.viewGrave('${grave.id}')">
-            View Details
-          </button>
+        <div class="grave-popup">
+          <div class="grave-thumbnail">
+            ${grave.primary_photo ? 
+              `<img src="${grave.primary_photo}" alt="${grave.deceased_name}" class="img-fluid rounded">` :
+              `<div class="no-photo"><i class="fas fa-cross fa-2x"></i></div>`
+            }
+          </div>
+          <div class="grave-info">
+            <h6 class="grave-name">${grave.deceased_name}</h6>
+            <p class="grave-dates">
+              ${grave.birth_date ? new Date(grave.birth_date).toLocaleDateString() : '?'} - 
+              ${grave.death_date ? new Date(grave.death_date).toLocaleDateString() : '?'}
+            </p>
+            <p class="grave-location small text-muted">
+              ${grave.cemetery_name || ''} 
+              ${grave.section ? `| Section ${grave.section}` : ''}
+              ${grave.plot_number ? `| Plot ${grave.plot_number}` : ''}
+            </p>
+            <div class="grave-actions">
+              <button class="btn btn-sm btn-primary" onclick="window.cemeteryMap.viewGrave('${grave.id}')">
+                <i class="fas fa-info-circle me-1"></i>Details
+              </button>
+              <button class="btn btn-sm btn-success" onclick="window.cemeteryMap.getDirections('${grave.id}')">
+                <i class="fas fa-directions me-1"></i>Directions
+              </button>
+            </div>
+          </div>
         </div>
       `;
 
+      const marker = L.marker([grave.latitude, grave.longitude], {
+        icon: this.getGraveIcon(grave),
+        title: grave.deceased_name
+      });
+
       marker.bindPopup(popupContent, {
-        maxWidth: 300,
-        className: 'popup-grave'
+        maxWidth: 320,
+        className: 'grave-popup-container'
+      });
+
+      marker.on('click', () => {
+        this.selectedGrave = grave;
+        this.highlightGrave(grave.id);
       });
 
       marker.addTo(this.map);
-      this.currentMarkers.push(marker);
-      this.markers.graves.push(marker);
+      this.markers.push(marker);
     });
   }
 
-  getCemeteryIcon() {
+  getGraveIcon(grave) {
+    const hasPhoto = grave.primary_photo ? true : false;
     return L.divIcon({
       className: 'custom-div-icon',
-      html: `<div class="marker-pin cemetery-pin"><i class="fas fa-church"></i></div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
-      popupAnchor: [0, -30]
+      html: `
+        <div class="marker-pin grave-pin ${hasPhoto ? 'has-photo' : ''}">
+          ${hasPhoto ? 
+            `<img src="${grave.primary_photo}" class="marker-thumbnail">` :
+            `<i class="fas fa-cross"></i>`
+          }
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+      popupAnchor: [0, -40]
     });
   }
 
-  getGraveIcon() {
-    return L.divIcon({
-      className: 'custom-div-icon',
-      html: `<div class="marker-pin grave-pin"><i class="fas fa-cross"></i></div>`,
-      iconSize: [25, 25],
-      iconAnchor: [12, 25],
-      popupAnchor: [0, -25]
-    });
-  }
-
-  populateCemeteryDropdown(cemeteries) {
-    const dropdown = document.getElementById('search-cemetery');
-    if (!dropdown) return;
-
-    cemeteries.forEach(cemetery => {
-      const option = document.createElement('option');
-      option.value = cemetery.id;
-      option.textContent = cemetery.name;
-      dropdown.appendChild(option);
-    });
-  }
-
-  async loadGravesForCemetery(cemeteryId) {
+  async getDirections(graveId) {
     try {
-      const response = await fetch(`/api/cemeteries/${cemeteryId}/graves`);
-      const graves = await response.json();
-      
-      // Update results sidebar
-      this.displaySearchResults(graves);
+      const response = await fetch(`/api/graves/${graveId}`);
+      const grave = await response.json();
+
+      if (!grave.latitude || !grave.longitude) {
+        this.showError('No GPS coordinates available for this grave');
+        return;
+      }
+
+      const destination = [grave.latitude, grave.longitude];
+
+      // Get user location
+      if (!this.currentLocation) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject);
+          });
+          this.currentLocation = [pos.coords.latitude, pos.coords.longitude];
+        } catch (error) {
+          // If user location not available, use map center
+          this.currentLocation = this.map.getCenter();
+        }
+      }
+
+      // Remove existing routing control
+      if (this.routingControl) {
+        this.map.removeControl(this.routingControl);
+      }
+
+      // Create routing control
+      this.routingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(this.currentLocation[0], this.currentLocation[1]),
+          L.latLng(destination[0], destination[1])
+        ],
+        routeWhileDragging: true,
+        lineOptions: {
+          styles: [{ color: '#2c3e7a', weight: 4 }]
+        },
+        createMarker: function(i, waypoint, n) {
+          if (i === 0) {
+            return L.marker(waypoint.latLng, {
+              icon: L.divIcon({
+                className: 'custom-div-icon',
+                html: '<div class="marker-pin start-pin"><i class="fas fa-play"></i></div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+              })
+            });
+          }
+          if (i === n - 1) {
+            return L.marker(waypoint.latLng, {
+              icon: L.divIcon({
+                className: 'custom-div-icon',
+                html: '<div class="marker-pin end-pin"><i class="fas fa-flag-checkered"></i></div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+              })
+            });
+          }
+        },
+        showAlternatives: true,
+        altLineOptions: {
+          styles: [{ color: '#6c757d', weight: 2, opacity: 0.6 }]
+        }
+      });
+
+      this.routingControl.addTo(this.map);
+
+      // Log directions request
+      await fetch('/api/directions/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          graveId: graveId,
+          startLat: this.currentLocation[0],
+          startLng: this.currentLocation[1],
+          endLat: destination[0],
+          endLng: destination[1]
+        })
+      });
+
     } catch (error) {
-      console.error('Error loading graves:', error);
+      console.error('Directions error:', error);
+      this.showError('Failed to get directions');
     }
-  }
-
-  displaySearchResults(graves) {
-    const container = document.getElementById('search-results');
-    if (!container) return;
-
-    if (!graves || graves.length === 0) {
-      container.innerHTML = '<p class="text-muted">No graves found.</p>';
-      return;
-    }
-
-    let html = '<ul class="list-unstyled">';
-    graves.forEach(grave => {
-      html += `
-        <li class="search-result-item mb-2 p-2 border rounded" 
-            onclick="window.cemeteryMap.viewGrave('${grave.id}')">
-          <strong>${grave.deceased_name}</strong>
-          <br>
-          <small class="text-muted">
-            ${grave.birth_date || ''} - ${grave.death_date || ''}
-            ${grave.plot_number ? ` | Plot ${grave.plot_number}` : ''}
-          </small>
-        </li>
-      `;
-    });
-    html += '</ul>';
-
-    container.innerHTML = html;
   }
 
   async viewGrave(graveId) {
@@ -244,12 +251,12 @@ class CemeteryMap {
       this.selectedGrave = grave;
       this.showGraveModal(grave);
       
-      // Center map on grave
       if (grave.latitude && grave.longitude) {
         this.map.setView([grave.latitude, grave.longitude], 18);
       }
     } catch (error) {
       console.error('Error loading grave details:', error);
+      this.showError('Failed to load grave details');
     }
   }
 
@@ -260,32 +267,93 @@ class CemeteryMap {
     content.innerHTML = `
       <div class="row">
         <div class="col-md-6">
-          <h5>${grave.deceased_name}</h5>
-          <p><strong>Born:</strong> ${grave.birth_date || 'Unknown'}</p>
-          <p><strong>Died:</strong> ${grave.death_date || 'Unknown'}</p>
+          <h5 class="text-primary">${grave.deceased_name}</h5>
+          <p><strong>Born:</strong> ${grave.birth_date ? new Date(grave.birth_date).toLocaleDateString() : 'Unknown'}</p>
+          <p><strong>Died:</strong> ${grave.death_date ? new Date(grave.death_date).toLocaleDateString() : 'Unknown'}</p>
           <p><strong>Age:</strong> ${grave.age_at_death || 'Unknown'}</p>
+          <p><strong>Gender:</strong> ${grave.gender || 'Unknown'}</p>
+          <p><strong>Nationality:</strong> ${grave.nationality || 'Unknown'}</p>
+          <p><strong>Occupation:</strong> ${grave.occupation || 'Unknown'}</p>
           <p><strong>Location:</strong> ${grave.section || ''} ${grave.block || ''} ${grave.plot_number || ''}</p>
           <p><strong>Cemetery:</strong> ${grave.cemetery_name || 'Unknown'}</p>
+          ${grave.epitaph ? `<p><strong>Epitaph:</strong> "${grave.epitaph}"</p>` : ''}
+          <div class="mt-3">
+            <button class="btn btn-success" onclick="window.cemeteryMap.getDirections('${grave.id}')">
+              <i class="fas fa-directions me-1"></i>Get Directions
+            </button>
+            <a href="/graves/${grave.id}" class="btn btn-primary">
+              <i class="fas fa-edit me-1"></i>Full Details
+            </a>
+          </div>
         </div>
         <div class="col-md-6">
-          ${grave.epitaph ? `<p><strong>Epitaph:</strong> "${grave.epitaph}"</p>` : ''}
-          ${grave.image_url ? `<img src="${grave.image_url}" class="img-fluid rounded" alt="${grave.deceased_name}">` : ''}
-          ${grave.occupation ? `<p><strong>Occupation:</strong> ${grave.occupation}</p>` : ''}
-          ${grave.nationality ? `<p><strong>Nationality:</strong> ${grave.nationality}</p>` : ''}
+          ${grave.primary_photo ? `<img src="${grave.primary_photo}" class="img-fluid rounded mb-3" alt="${grave.deceased_name}">` : ''}
+          <div id="grave-photos-container" class="row g-2">
+            <!-- Additional photos loaded dynamically -->
+          </div>
         </div>
-      </div>
-      <div class="mt-3">
-        <a href="/graves/${grave.id}" class="btn btn-primary">View Full Details</a>
-        ${grave.latitude && grave.longitude ? `
-          <a href="https://www.openstreetmap.org/?mlat=${grave.latitude}&mlon=${grave.longitude}" 
-             target="_blank" class="btn btn-outline-secondary">
-            <i class="fas fa-directions me-1"></i>Directions
-          </a>
-        ` : ''}
       </div>
     `;
 
+    // Load additional photos
+    this.loadGravePhotos(grave.id);
+
     modal.show();
+  }
+
+  async loadGravePhotos(graveId) {
+    try {
+      const response = await fetch(`/api/graves/${graveId}/photos`);
+      const photos = await response.json();
+      const container = document.getElementById('grave-photos-container');
+      
+      if (container && photos.length > 0) {
+        container.innerHTML = photos.map(photo => `
+          <div class="col-4">
+            <img src="${photo.photo_url}" class="img-fluid rounded" alt="${photo.caption || 'Grave photo'}" style="height: 100px; object-fit: cover;">
+          </div>
+        `).join('');
+      }
+    } catch (error) {
+      console.error('Error loading photos:', error);
+    }
+  }
+
+  getUserLocation() {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.currentLocation = [position.coords.latitude, position.coords.longitude];
+          this.addUserLocationMarker();
+        },
+        (error) => {
+          console.log('User location not available:', error);
+        }
+      );
+    }
+  }
+
+  addUserLocationMarker() {
+    if (this.userLocationMarker) {
+      this.map.removeLayer(this.userLocationMarker);
+    }
+    
+    this.userLocationMarker = L.marker(this.currentLocation, {
+      icon: L.divIcon({
+        className: 'custom-div-icon',
+        html: '<div class="marker-pin user-pin"><i class="fas fa-user"></i></div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30]
+      })
+    });
+    this.userLocationMarker.addTo(this.map);
+  }
+
+  highlightGrave(graveId) {
+    // Reset all markers
+    this.markers.forEach(marker => {
+      marker.setIcon(this.getGraveIcon(this.selectedGrave));
+    });
   }
 
   setupEventListeners() {
@@ -299,16 +367,6 @@ class CemeteryMap {
         await this.searchGraves(name, cemeteryId);
       });
     }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      // 'F' for fullscreen
-      if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
-        if (this.map.fullscreen) {
-          this.map.toggleFullscreen();
-        }
-      }
-    });
   }
 
   async searchGraves(name, cemeteryId) {
@@ -322,49 +380,62 @@ class CemeteryMap {
       const graves = await response.json();
       
       this.displaySearchResults(graves);
-      
-      // Highlight markers on map
-      this.highlightGraveMarkers(graves);
     } catch (error) {
       console.error('Error searching graves:', error);
     }
   }
 
-  highlightGraveMarkers(graves) {
-    // Reset all markers
-    this.markers.graves.forEach(marker => {
-      marker.setIcon(this.getGraveIcon());
-    });
+  displaySearchResults(graves) {
+    const container = document.getElementById('search-results');
+    if (!container) return;
 
-    // Highlight found graves
-    const foundIds = graves.map(g => g.id);
-    this.markers.graves.forEach(marker => {
-      if (foundIds.includes(marker.options.id)) {
-        // Highlight marker
-        marker.setIcon(this.getHighlightedGraveIcon());
-      }
-    });
-  }
+    if (!graves || graves.length === 0) {
+      container.innerHTML = '<p class="text-muted text-center">No graves found.</p>';
+      return;
+    }
 
-  getHighlightedGraveIcon() {
-    return L.divIcon({
-      className: 'custom-div-icon',
-      html: `<div class="marker-pin grave-pin highlighted"><i class="fas fa-cross"></i></div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
-      popupAnchor: [0, -30]
+    let html = '<div class="list-group">';
+    graves.forEach(grave => {
+      html += `
+        <button class="list-group-item list-group-item-action" 
+                onclick="window.cemeteryMap.viewGrave('${grave.id}')">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${grave.deceased_name}</strong>
+              <br>
+              <small class="text-muted">
+                ${grave.birth_date ? new Date(grave.birth_date).toLocaleDateString() : '?'} - 
+                ${grave.death_date ? new Date(grave.death_date).toLocaleDateString() : '?'}
+              </small>
+            </div>
+            <span class="badge bg-primary">${grave.cemetery_name || 'Unknown'}</span>
+          </div>
+        </button>
+      `;
     });
+    html += '</div>';
+
+    container.innerHTML = html;
   }
 
   showError(message) {
-    const container = document.getElementById('search-results');
-    if (container) {
-      container.innerHTML = `<div class="alert alert-danger">${message}</div>`;
-    }
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-danger border-0 position-fixed bottom-0 end-0 m-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    `;
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    setTimeout(() => toast.remove(), 5000);
   }
 }
 
-// Initialize map when DOM is ready
+// Initialize map
 document.addEventListener('DOMContentLoaded', () => {
   window.cemeteryMap = new CemeteryMap();
 });
