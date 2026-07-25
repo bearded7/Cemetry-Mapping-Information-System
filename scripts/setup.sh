@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Cemetery Mapping Information System - Setup Script
-# This script sets up the project with all dependencies and configurations
-
 echo "🚀 Starting Cemetery Mapping Information System Setup..."
 echo "========================================================"
 
@@ -12,13 +9,6 @@ if ! command -v node &> /dev/null; then
     exit 1
 fi
 
-# Check for npm
-if ! command -v npm &> /dev/null; then
-    echo "❌ npm is not installed. Please install npm"
-    exit 1
-fi
-
-# Check Node version
 NODE_VERSION=$(node -v | cut -d 'v' -f 2 | cut -d '.' -f 1)
 if [ "$NODE_VERSION" -lt 18 ]; then
     echo "❌ Node.js version 18+ required. Current version: $NODE_VERSION"
@@ -28,19 +18,22 @@ fi
 echo "✅ Node.js version: $(node -v)"
 echo "✅ npm version: $(npm -v)"
 
-# Create necessary directories
+# Create directories
 echo "📁 Creating project directories..."
-mkdir -p uploads logs public/css public/js public/images
+mkdir -p uploads/{messages,graves,thumbnails,cemeteries}
+mkdir -p public/{css,js,images}
+mkdir -p logs
+mkdir -p data/samples
 
 # Install dependencies
 echo "📦 Installing dependencies..."
 npm install
 
-# Create .env file if it doesn't exist
+# Create .env file
 if [ ! -f .env ]; then
     echo "📝 Creating .env file..."
     cp .env.example .env
-    echo "⚠️  Please update .env file with your configuration"
+    echo "⚠️  Please update .env file with your database configuration"
 fi
 
 # Setup database
@@ -48,21 +41,12 @@ echo "🗄️  Setting up database..."
 if [ -f .env ]; then
     source .env
     if [ -n "$DATABASE_URL" ]; then
-        echo "✅ Database configuration found"
         npm run migrate
         npm run seed
     else
         echo "⚠️  DATABASE_URL not set in .env"
-        echo "Please configure your database connection"
     fi
-else
-    echo "⚠️  .env file not found. Please create one"
 fi
-
-# Create sample data structure
-echo "📊 Creating sample data structure..."
-mkdir -p data/samples
-cp db/seed.sql data/samples/ 2>/dev/null || true
 
 # Set permissions
 echo "🔧 Setting permissions..."
