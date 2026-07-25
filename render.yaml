@@ -1,11 +1,22 @@
+# ============================================================
+# Render Deployment Configuration
+# Choose ONE of the following deployment methods
+# ============================================================
+
+# METHOD 1: Node.js Runtime (Recommended for simplicity)
 services:
   - type: web
     name: cemetery-mapping-system
-    runtime: docker
-    repo: https://github.com/bearded7/Cemetry-Mapping-Information-System/tree/master
+    env: node
     plan: free
-    dockerfilePath: ./Dockerfile
+    buildCommand: |
+      npm install --production=false
+      npm run migrate || true
+      npm run seed || true
+    startCommand: npm start
     envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
@@ -14,9 +25,14 @@ services:
         fromDatabase:
           name: cemetery-db
           property: connectionString
-    healthCheckPath: /
+      - key: ADMIN_EMAIL
+        value: admin@cemetery.com
+      - key: ADMIN_PASSWORD
+        value: admin123
+    healthCheckPath: /health
     autoDeploy: true
 
+  # PostgreSQL Database
   - type: postgresql
     name: cemetery-db
     plan: free
@@ -24,3 +40,24 @@ services:
     postgresMajorVersion: 15
     databaseName: cemetery_db
     user: postgres
+
+# METHOD 2: Docker Runtime (Uncomment to use Docker)
+# services:
+#   - type: web
+#     name: cemetery-mapping-system
+#     runtime: docker
+#     plan: free
+#     repo: https://github.com/your-username/Cemetry-Mapping-Information-System
+#     dockerfilePath: ./Dockerfile
+#     dockerContext: .
+#     envVars:
+#       - key: NODE_ENV
+#         value: production
+#       - key: SESSION_SECRET
+#         generateValue: true
+#       - key: DATABASE_URL
+#         fromDatabase:
+#           name: cemetery-db
+#           property: connectionString
+#     healthCheckPath: /health
+#     autoDeploy: true
