@@ -4,8 +4,11 @@ services:
     env: node
     plan: free
     buildCommand: |
-      npm install
-      npm run migrate
+      chmod +x scripts/prebuild.sh
+      ./scripts/prebuild.sh
+      npm install --production=false
+      npm run migrate || true
+      npm run seed || true
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
@@ -26,5 +29,5 @@ services:
     plan: free
     ipAllowList: []
     postgresMajorVersion: 15
-    databaseName: cemetery
-    user: admin
+    databaseName: cemetery_db
+    user: postgres

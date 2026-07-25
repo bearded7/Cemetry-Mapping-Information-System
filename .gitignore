@@ -48,3 +48,6 @@ temp/
 # Docker
 *.pid
 docker-compose.override.yml
+
+# Package lock (REMOVE THIS LINE - we want to keep it)
+# package-lock.json
